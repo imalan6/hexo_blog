@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>JVM调优总结 | Hexo</title>
+  <meta name="description" content="JVM调优总结性能调优性能调优包含多个层次，包括架构调优、代码调优、JVM调优、数据库调优和操作系统调优等。架构调优和代码调优是JVM调优的基础，其中架构调优是对系统影响最大的。 JVM调优目标JVM调优的最终目的是让应用程序以最小的硬件承载更大的吞吐。JVM调优主要是针对垃圾收集器的收集性能优化，让应用程序占用更少的内存和延迟，但拥有更大的吞吐量。JVM内存系统级调优主要的目的是减少GC的频率和">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JVM调优总结">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2020/11/12/jvm/JVM%E8%B0%83%E4%BC%98%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="JVM调优总结性能调优性能调优包含多个层次，包括架构调优、代码调优、JVM调优、数据库调优和操作系统调优等。架构调优和代码调优是JVM调优的基础，其中架构调优是对系统影响最大的。 JVM调优目标JVM调优的最终目的是让应用程序以最小的硬件承载更大的吞吐。JVM调优主要是针对垃圾收集器的收集性能优化，让应用程序占用更少的内存和延迟，但拥有更大的吞吐量。JVM内存系统级调优主要的目的是减少GC的频率和">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/03/13/k7yd8MPG2AKm1OE.png">
+<meta property="article:published_time" content="2020-11-12T13:33:16.000Z">
+<meta property="article:modified_time" content="2024-02-14T11:20:05.059Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="jvm">
+<meta property="article:tag" content="jvm调优">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/03/13/k7yd8MPG2AKm1OE.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2020/11/12/jvm/JVM%E8%B0%83%E4%BC%98%E6%80%BB%E7%BB%93/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-jvm/JVM调优总结" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      JVM调优总结
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2020/11/12/jvm/JVM%E8%B0%83%E4%BC%98%E6%80%BB%E7%BB%93/" class="article-date">
+	  <time datetime="2020-11-12T13:33:16.000Z" itemprop="datePublished">2020-11-12</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/jvm/">jvm</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/jvm/" rel="tag">jvm</a>, <a class="article-tag-link-link" href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" rel="tag">jvm调优</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2020/11/12/jvm/JVM%E8%B0%83%E4%BC%98%E6%80%BB%E7%BB%93/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="JVM调优总结"><a href="#JVM调优总结" class="headerlink" title="JVM调优总结"></a>JVM调优总结</h1><h2 id="性能调优"><a href="#性能调优" class="headerlink" title="性能调优"></a>性能调优</h2><p>性能调优包含多个层次，包括架构调优、代码调优、<code>JVM</code>调优、数据库调优和操作系统调优等。架构调优和代码调优是<code>JVM</code>调优的基础，其中架构调优是对系统影响最大的。</p>
+<h2 id="JVM调优目标"><a href="#JVM调优目标" class="headerlink" title="JVM调优目标"></a>JVM调优目标</h2><p><code>JVM</code>调优的最终目的是让应用程序以最小的硬件承载更大的吞吐。<code>JVM</code>调优主要是针对垃圾收集器的收集性能优化，让应用程序占用更少的内存和延迟，但拥有更大的吞吐量。<code>JVM</code>内存系统级调优主要的目的是减少<code>GC</code>的频率和<code>Full GC</code>的次数。</p>
+<p><code>Full GC</code>：包括<code>Young</code>、<code>Tenured</code>和<code>Perm</code>。因为<code>Full GC</code>需要对整个堆进行回收，所以比较慢，因此应尽可能减少<code>Full GC</code>次数。</p>
+<p>导致<code>Full GC</code>的原因：</p>
+<ul>
+<li><p>年老代（Tenured）被写满：尽量让对象在新生代<code>GC</code>时就被回收，让对象在新生代多存活一段时间。另外，不要创建过大的对象及数组，避免其直接在老年代创建对象 。</p>
+</li>
+<li><p>永久代<code>Pemanet Generation</code>空间不足（Java1.8 以后没有永久代）：增大<code>Perm Gen</code>空间，避免太多静态对象 ， 控制好新生代和旧生代的比例</p>
+</li>
+<li><p><code>System.gc()</code>被显示调用：垃圾回收不要手动触发，尽量由 JVM 触发垃圾回收</p>
+</li>
+</ul>
+<h2 id="何时需要JVM调优"><a href="#何时需要JVM调优" class="headerlink" title="何时需要JVM调优"></a>何时需要JVM调优</h2><p>遇到以下情况，就需要考虑<code>JVM</code>调优了：</p>
+<ul>
+<li><code>Heap</code>内存（老年代）持续上涨达到设置的最大内存值；</li>
+<li><code>FullGC</code>次数频繁；</li>
+<li><code>GC</code>停顿时间过长（超过1秒）；</li>
+<li>应用出现<code>OutOfMemory</code>等内存异常；</li>
+<li>应用中有使用本地缓存且占用大量内存空间；</li>
+<li>系统吞吐量与响应性能不高或下降。</li>
+</ul>
+<h2 id="JVM调优量化目标"><a href="#JVM调优量化目标" class="headerlink" title="JVM调优量化目标"></a>JVM调优量化目标</h2><p><code>JVM</code>调优的量化目标参考实例：</p>
+<ul>
+<li>Heap 内存使用率 &lt;&#x3D; 70%;</li>
+<li>Old generation 内存使用率&lt;&#x3D; 70%;</li>
+<li><code>avgpause</code> &lt;&#x3D; 1秒;</li>
+<li><code>Full gc</code>次数为0 或<code>avg pause interval</code>&gt;&#x3D; 24 小时 ;</li>
+</ul>
+<p>注意：不同应用的 JVM 调优量化目标是不一样的，这里只是一种建议。</p>
+<h2 id="JVM调优步骤"><a href="#JVM调优步骤" class="headerlink" title="JVM调优步骤"></a>JVM调优步骤</h2><p>一般情况下，<code>JVM</code>调优可通过以下步骤进行：</p>
+<ul>
+<li>分析<code>GC</code>日志及<code>dump</code>文件，判断是否需要优化，确定瓶颈问题点；</li>
+<li>确定<code>JVM</code>调优量化目标；</li>
+<li>确定<code>JVM</code>调优参数（根据历史<code>JVM</code>参数来调整）；</li>
+<li>依次调优内存、延迟、吞吐量等指标；</li>
+<li>对比观察调优前后的差异；</li>
+<li>不断的分析和调整，直到找到合适的<code>JVM</code>参数配置；</li>
+<li>找到最合适的参数，将这些参数应用到所有服务器，并进行后续跟踪。</li>
+</ul>
+<p>以上操作步骤需要多次不断迭代完成。一般是从满足程序的内存使用需求开始，然后是时间延迟要求，最后是吞吐量要求，要基于这个步骤不断优化。</p>
+<h2 id="JVM参数规范"><a href="#JVM参数规范" class="headerlink" title="JVM参数规范"></a>JVM参数规范</h2><p><code>JVM</code>调优最主要的方法就是通过修改<code>JVM</code>参数达到调优的目的。</p>
+<p>-XX 参数被称为不稳定参数，此类参数的设置很容易引起<code>JVM</code>性能上的差异，使<code>JVM</code>存在极大的不稳定性。如果此类参数设置合理将大大提高<code>JVM</code>的性能及稳定性。</p>
+<p>不稳定参数语法规则包含以下内容。</p>
+<p>布尔类型参数值：</p>
+<ul>
+<li>-XX:+ ‘+’表示启用该选项</li>
+<li>-XX:- ‘-‘表示关闭该选项</li>
+</ul>
+<p>数字类型参数值：</p>
+<ul>
+<li>-XX:&#x3D;给选项设置一个数字类型值，可跟随单位，例如：’m’或’M’表示兆字节;’k’或’K’千字节;’g’或’G’千兆字节。32K与32768是相同大小的。</li>
+</ul>
+<p>字符串类型参数值：</p>
+<ul>
+<li>-XX:&#x3D;给选项设置一个字符串类型值，通常用于指定一个文件、路径或一系列命令列表。例如：<code>-XX:HeapDumpPath=./dump.core</code></li>
+</ul>
+<h2 id="JVM部分参数解析"><a href="#JVM部分参数解析" class="headerlink" title="JVM部分参数解析"></a>JVM部分参数解析</h2><p>比如以下参数示例：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-Xmx4g –Xms4g –Xmn1200m –Xss512k -XX:NewRatio=4 -XX:SurvivorRatio=8 -XX:PermSize=100m -XX:MaxPermSize=256m -XX:MaxTenuringThreshold=15</span><br></pre></td></tr></table></figure>
+
+<p>上面为 Java7 及以前版本的示例，在 Java8 中永久代的参数<code>-XX:PermSize</code>和<code>-XX:MaxPermSize</code>已经失效。</p>
+<p>参数解析：</p>
+<ul>
+<li>-Xmx4g：堆内存最大值为4GB。</li>
+<li>-Xms4g：初始化堆内存大小为4GB。</li>
+<li>-Xmn1200m：设置年轻代大小为1200MB。增大年轻代后，将会减小年老代大小。此值对系统性能影响较大，Sun官方推荐配置为整个堆的3&#x2F;8。</li>
+<li>-Xss512k：设置每个线程的堆栈大小。JDK5.0 以后每个线程堆栈大小为1MB，以前每个线程堆栈大小为256K。应根据应用线程所需内存大小进行调整。在相同物理内存下，减小这个值能生成更多的线程。但是操作系统对一个进程内的线程数还是有限制的，不能无限生成，经验值在3000~5000左右。</li>
+<li>-XX:NewRatio&#x3D;4：设置年轻代（包括<code>Eden</code>和两个<code>Survivor</code>区）与年老代的比值（除去持久代）。设置为4，则年轻代与年老代所占比值为1 : 4，年轻代占整个堆栈的1&#x2F;5</li>
+<li>-XX:SurvivorRatio&#x3D;8：设置年轻代中<code>Eden</code>区与<code>Survivor</code>区的大小比值。设置为8，则两个<code>Survivor</code>区与一个<code>Eden</code>区的比值为2 : 8，一个<code>Survivor</code>区占整个年轻代的1&#x2F;10</li>
+<li>-XX:PermSize&#x3D;100m：初始化永久代大小为100MB。</li>
+<li>-XX:MaxPermSize&#x3D;256m：设置持久代大小为256MB。</li>
+<li>-XX:MaxTenuringThreshold&#x3D;15：设置垃圾最大年龄。如果设置为0的话，则年轻代对象不经过<code>Survivor</code>区，直接进入年老代。对于年老代比较多的应用，可以提高效率。如果将此值设置为一个较大值，则年轻代对象会在<code>Survivor</code>区进行多次复制，这样可以增加对象在年轻代的存活时间，让对象仅可能在年轻代即被回收。</li>
+</ul>
+<p>新生代、老生代、永久代的参数，如果不进行指定，虚拟机会自动选择合适的值，同时也会基于系统的开销自动调整。</p>
+<p>可调优参数：</p>
+<p>-Xms：初始化堆内存大小，默认为物理内存的1&#x2F;64(小于1GB)。</p>
+<p>-Xmx：堆内存最大值。默认（MaxHeapFreeRatio 参数可以调整）空余堆内存大于70%时，<code>JVM</code>会减少堆直到<code>-Xms</code>的最小限制。</p>
+<p>-Xmn：新生代大小，包括<code>Eden</code>区与2个<code>Survivor</code>区。</p>
+<p>-XX:SurvivorRatio&#x3D;1：<code>Eden</code>区与一个<code>Survivor</code>区比值为1 : 1。</p>
+<p>-XX:MaxDirectMemorySize&#x3D;1G：直接内存。报<code>java.lang.OutOfMemoryError: Direct buffer memory</code>异常可以上调这个值。</p>
+<p>-XX:+DisableExplicitGC：禁止运行期显式地调用<code>System.gc()</code>来触发<code>FulllGC</code>。</p>
+<p>注意: Java RMI 的定时 GC 触发机制可通过配置<code>-Dsun.rmi.dgc.server.gcInterval=86400</code>来控制触发的时间。</p>
+<p>-XX:CMSInitiatingOccupancyFraction&#x3D;60：老年代内存回收阈值，默认值为68。</p>
+<p>-XX:ConcGCThreads&#x3D;4：CMS 垃圾回收器并行线程线，推荐值为 CPU 核心数。</p>
+<p>-XX:ParallelGCThreads&#x3D;8：新生代并行收集器的线程数。</p>
+<p>-XX:MaxTenuringThreshold&#x3D;10：设置垃圾最大年龄。如果设置为0的话，则年轻代对象不经过<code>Survivor</code>区，直接进入年老代。对于年老代比较多的应用，可以提高效率。如果将此值设置为一个较大值，则年轻代对象会在<code>Survivor</code>区进行多次复制，这样可以增加对象在年轻代的存活时间，让对象仅可能在年轻代即被回收。</p>
+<p>-XX:CMSFullGCsBeforeCompaction&#x3D;4：指定进行多少次<code>FullGC</code>之后，进行<code>tenured</code>区 内存空间压缩。</p>
+<p>-XX:CMSMaxAbortablePrecleanTime&#x3D;500：当<code>abortable-preclean</code>预清理阶段执行达到这个时间时就会结束。</p>
+<p>在设置的时候，如果关注性能开销的话，应尽量把永久代的初始值与最大值设置为同一值，因为永久代的大小调整需要进行<code>FullGC</code>才能实现。</p>
+<h2 id="内存优化示例"><a href="#内存优化示例" class="headerlink" title="内存优化示例"></a>内存优化示例</h2><p>众所周知，由于<code>Full GC</code>的成本远远高于<code>Minor GC</code>，因此某些情况下需要尽可能将对象分配在年轻代，这在很多情况下是一个明智的选择。虽然在大部分情况下，<code>JVM</code>会尝试在<code>Eden</code>区分配对象，但是由于空间紧张等问题，很可能不得不将部分年轻对象提前向年老代压缩。因此，在<code>JVM</code>参数调优时可以为应用程序分配一个合理的年轻代空间，以最大限度避免新对象直接进入年老代的情况发生。如下所示代码尝试分配 4MB 内存空间，看一下它的内存使用情况。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">GCTest</span> &#123;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span>&#123;</span><br><span class="line"> 		<span class="type">byte</span>[] b1,b2,b3,b4;</span><br><span class="line"> 		b1=<span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">1024</span>*<span class="number">1024</span>];	<span class="comment">//分配 1MB 堆空间，观察堆空间的使用情况</span></span><br><span class="line"> 		b2=<span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">1024</span>*<span class="number">1024</span>];</span><br><span class="line"> 		b3=<span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">1024</span>*<span class="number">1024</span>];</span><br><span class="line"> 		b4=<span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">1024</span>*<span class="number">1024</span>];</span><br><span class="line"> 	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>并使用<code>JVM</code>参数<code>-XX:+PrintGCDetails -Xmx20M -Xms20M</code>运行以上代码，输出结果如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">[GC (Allocation Failure) [PSYoungGen: 4673K-&gt;504K(6144K)] 4673K-&gt;3083K(19968K), 0.0023390 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] </span><br><span class="line">Heap</span><br><span class="line"> PSYoungGen      total 6144K, used 2717K [0x00000000ff980000, 0x0000000100000000, 0x0000000100000000)</span><br><span class="line">  eden space 5632K, 39% used [0x00000000ff980000,0x00000000ffba94d8,0x00000000fff00000)</span><br><span class="line">  from space 512K, 98% used [0x00000000fff00000,0x00000000fff7e010,0x00000000fff80000)</span><br><span class="line">  to   space 512K, 0% used [0x00000000fff80000,0x00000000fff80000,0x0000000100000000)</span><br><span class="line"> ParOldGen       total 13824K, used 2579K [0x00000000fec00000, 0x00000000ff980000, 0x00000000ff980000)</span><br><span class="line">  object space 13824K, 18% used [0x00000000fec00000,0x00000000fee84c90,0x00000000ff980000)</span><br><span class="line"> Metaspace       used 3178K, capacity 4496K, committed 4864K, reserved 1056768K</span><br><span class="line">  class space    used 344K, capacity 388K, committed 512K, reserved 1048576K</span><br></pre></td></tr></table></figure>
+
+<p>以上结果所示的日志输出显示年轻代<code>Eden</code>的大小有 6MB 左右，在分配空间的时候触发了MinorGC，并将对象移到了老年代。其中：</p>
+<p>[PSYoungGen: 4673K-&gt;504K(6144K)] 4673K-&gt;3083K(19968K), 0.0023390 secs] [Times: user&#x3D;0.00 sys&#x3D;0.00, real&#x3D;0.00 secs] </p>
+<p>以上<code>GC</code>日志各要素含义如下：</p>
+<ul>
+<li><p><strong>[PSYoungGen: 4673K-&gt;504K(6144K)]</strong> ：[日志类型：YoungGC前新生代内存占用 -&gt; YoungGC后新生代内存占用（新生代总共大小）] ；</p>
+</li>
+<li><p><strong>4673K-&gt;3083K(19968K), 0.0023390 secs</strong>：YoungGC 前 JVM 堆内存占用 -&gt; YoungGC 后 JVM 堆内存占用（JVM 堆总大小），YoungGC 耗时；</p>
+</li>
+<li><p>**[Times: user&#x3D;0.00 sys&#x3D;0.00, real&#x3D;0.00 secs]**：[YoungGC 用户耗时，YoungGC 系统耗时，YoungGC 实际耗时]</p>
+</li>
+</ul>
+<p>现在分配足够大的年轻代空间，使用<code>JVM</code>参数<code>-XX:+PrintGCDetails -Xmx20M -Xms20M -Xmn10M</code>再次运行以上代码，输出结果如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Heap</span><br><span class="line"> PSYoungGen      total 9216K, used 7093K [0x00000000ff600000, 0x0000000100000000, 0x0000000100000000)</span><br><span class="line">  eden space 8192K, 86% used [0x00000000ff600000,0x00000000ffced410,0x00000000ffe00000)</span><br><span class="line">  from space 1024K, 0% used [0x00000000fff00000,0x00000000fff00000,0x0000000100000000)</span><br><span class="line">  to   space 1024K, 0% used [0x00000000ffe00000,0x00000000ffe00000,0x00000000fff00000)</span><br><span class="line"> ParOldGen       total 10240K, used 0K [0x00000000fec00000, 0x00000000ff600000, 0x00000000ff600000)</span><br><span class="line">  object space 10240K, 0% used [0x00000000fec00000,0x00000000fec00000,0x00000000ff600000)</span><br><span class="line"> Metaspace       used 3206K, capacity 4496K, committed 4864K, reserved 1056768K</span><br><span class="line">  class space    used 349K, capacity 388K, committed 512K, reserved 1048576K</span><br></pre></td></tr></table></figure>
+
+<p>通过两次结果对比，可以发现通过设置一个较大的年轻代，可以将年轻对象保存在年轻代。一般来说，<code>Survivor</code>区的空间不够，或者占用量达到 50%时，就会使对象进入年老代 (不管它的年龄有多大)。</p>
+<h2 id="延迟优化示例"><a href="#延迟优化示例" class="headerlink" title="延迟优化示例"></a>延迟优化示例</h2><p>对延迟性优化，首先需要了解延迟性需求及可调优的指标。</p>
+<ul>
+<li>应用程序可接受的平均停滞时间: 此时间与测量的时间比较</li>
+<li><code>GC</code>持续时间进行比较，可接受的<code>MinorGC</code>频率</li>
+<li><code>GC</code>的频率与可容忍的值进行比较。</li>
+<li>最大停顿时间与最差情况下<code>FullGC</code>的持续时间进行比较。</li>
+<li>可接受的最大停顿发生的频率：基本就是<code>FullGC</code>的频率。</li>
+</ul>
+<p>其中，平均停滞时间和最大停顿时间，对用户体验最为重要。对于上面的指标，相关数据采集包括：<code>MinorGC</code>的持续时间、统计<code>MinorGC</code>的次数、<code>FullGC</code>的最差持续时间、最差情况下，<code>FullGC</code>的频率。</p>
+<p><img src="https://i.loli.net/2021/03/13/k7yd8MPG2AKm1OE.png" alt="0.png"></p>
+<p>如上图，<code>MinorGC</code>的平均持续时间 0.069 秒，<code>MinorGC</code>的频率为 0.389 秒一次。</p>
+<p>新生代空间越大，<code>MinorGC</code>的<code>GC</code>时间越长，频率越低。如果想减少其持续时长，就需要减少其空间大小。如果想减小其频率，就需要加大其空间大小。</p>
+<p>这里以减少了新生代空间 10% 的大小，来减小延迟时间。在此过程中，应该保持老年代和持代的大小不变化。调优后的参数如下变化:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -Xms359m -Xmx359m -Xmn126m -XX:PermSize=5m -XX:MaxPermSize=5m</span><br></pre></td></tr></table></figure>
+
+<h2 id="吞吐量调优"><a href="#吞吐量调优" class="headerlink" title="吞吐量调优"></a>吞吐量调优</h2><p>吞吐量调优主要是基于应用程序的吞吐量要求而来的，应用程序应该有一个综合的吞吐指标，这个指标基于整个应用的需求和测试而衍生出来。</p>
+<p>评估当前吞吐量和目标差距是否巨大，如果在20%左右，可以修改参数，加大内存，再次从头调试，如果巨大就需要从整个应用层面来考虑，设计以及目标是否一致了，重新评估吞吐目标。</p>
+<p>对于垃圾收集器来说，提升吞吐量的性能调优的目标就是尽可能避免或者很少发生<code>FullGC</code>或者<code>Stop-The-World</code>压缩式垃圾收集（<code>CMS</code>），因为这两种方式都会造成应用程序吞吐降低。尽量在<code>MinorGC</code>阶段回收更多的对象，避免对象提升过快到老年代。</p>
+<h2 id="开启GC日志"><a href="#开启GC日志" class="headerlink" title="开启GC日志"></a>开启GC日志</h2><ul>
+<li>开启语句</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-XX:+PrintGCDetails  -XX:+PrintGCDateStamps  </span><br><span class="line">-Xloggc:/var/log/gc-regionserver.log   </span><br><span class="line">-XX:+UseGCLogFileRotation  </span><br><span class="line">-XX:NumberOfGCLogFiles=10  -XX:GCLogFileSize=512k</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>参数详解</li>
+</ul>
+<p>-XX:+PrintGCDetails<br>输出 GC 的详细日志</p>
+<p>-XX:+PrintGCDateStamps<br>输出 GC 的日期戳</p>
+<p>-Xloggc:&#x2F;var&#x2F;log&#x2F;gc-regionserver.log<br>GC 日志输出的路径</p>
+<p>-XX:+UseGCLogFileRotation<br>打开 GC 日志滚动记录功能</p>
+<p>-XX:NumberOfGCLogFiles<br>设置滚动日志文件的个数，必须大于等于1<br>日志文件命名策略是，.0, .1, …, .n-1，其中n是该参数的值</p>
+<p>-XX:GCLogFileSize<br>设置滚动日志文件的大小，必须大于8k<br>当前写日志文件大小超过该参数值时，日志将写入下一个文件</p>
+<ul>
+<li>其他有用参数</li>
+</ul>
+<p>-XX:+PrintGCApplicationStoppedTime<br>打印 GC 造成应用暂停的时间</p>
+<p>-XX:+PrintHeapAtGC<br>在进行 GC 的前后打印出堆的信息</p>
+<p>-XX:+PrintTenuringDistribution<br>在每次新生代<code>young GC</code>时，输出幸存区中对象的年龄分布</p>
+<h2 id="GC日志分析工具"><a href="#GC日志分析工具" class="headerlink" title="GC日志分析工具"></a>GC日志分析工具</h2><ul>
+<li>GCeasy</li>
+</ul>
+<p><code>GCeasy</code>是一款在线的<code>GC</code>日志分析器，可以通过<code>GC</code>日志分析进行内存泄露检测、<code>GC</code>暂停原因分析、<code>JVM</code>配置建议优化等功能，而且是可以免费使用的。</p>
+<p>网址：<a target="_blank" rel="noopener" href="https://gceasy.io/">https://gceasy.io/</a></p>
+<ul>
+<li>GCViewer</li>
+</ul>
+<p>借助<code>GCViewer</code>日志分析工具，可以非常直观地分析出<code>JVM</code>待调优点。可从以下几方面来分析：</p>
+<p>Memory：分析<code>Totalheap</code>、<code>Tenuredheap</code>、<code>Youngheap</code>内存占用率及其他指标，理论上内存占用率越小越好；</p>
+<p>Pause：分析<code>Gc pause</code>、<code>Fullgc pause</code>、<code>Total pause</code>三个大项中各指标，理论上<code>GC</code>次数越少越好，<code>GC</code>时长越小越好；</p>
+<p>工具下载地址：<a target="_blank" rel="noopener" href="https://github.com/chewiebug/GCViewer">https://github.com/chewiebug/GCViewer</a></p>
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2020/12/16/jvm/%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83CPU100%E8%A7%A3%E5%86%B3%E6%80%9D%E8%B7%AF/" title="生产环境CPU 100%解决思路"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2020/09/12/springboot/SpringBoot%E9%85%8D%E7%BD%AESlf4j%E5%92%8CLogback/" title="pringBoot配置Slf4j和Logback"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

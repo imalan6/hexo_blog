@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>kafka数据可靠性 | Hexo</title>
+  <meta name="description" content="配置参数Kafka有两个很重要的配置参数：acks 与 min.insync.replicas 。其中，acks 是producer的配置参数，而 min.insync.replicas 是broker端的配置参数。这两个参数对于生产者发送数据的可靠性起了很大的作用。 kafka 分区副本kafka 的topic是可以分区的，并且可以为分区配置多个副本，改配置可以通过 replication.fa">
+<meta property="og:type" content="article">
+<meta property="og:title" content="kafka数据可靠性">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="配置参数Kafka有两个很重要的配置参数：acks 与 min.insync.replicas 。其中，acks 是producer的配置参数，而 min.insync.replicas 是broker端的配置参数。这两个参数对于生产者发送数据的可靠性起了很大的作用。 kafka 分区副本kafka 的topic是可以分区的，并且可以为分区配置多个副本，改配置可以通过 replication.fa">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-5eb37b02966e11f1d6a2c6a8e1ecc9b9_720w-1704100255162-3-1704100402093-20.webp">
+<meta property="og:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-a6bce3e6b3b2830e654a36342206d410_720w.png">
+<meta property="og:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-55567db873e4ffef10dc710567e24131_720w.png">
+<meta property="og:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-d84609c80826c20bcec9822b59a40709_720w.png">
+<meta property="og:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-54d2a176d9dc727f38982176327c7237_720w.webp">
+<meta property="og:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-0087ef0495ff85224451a849eb1c79aa_720w.webp">
+<meta property="og:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-643579cef34f061534472f4249d8ab07_720w.png">
+<meta property="og:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-04ebf9e3f84be19871ec66be59d6ff2e_720w.png">
+<meta property="article:published_time" content="2022-11-10T15:12:33.000Z">
+<meta property="article:modified_time" content="2024-02-14T12:12:32.241Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="kafka">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-5eb37b02966e11f1d6a2c6a8e1ecc9b9_720w-1704100255162-3-1704100402093-20.webp">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-kafka/kafka发送数据可靠性" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      kafka数据可靠性
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="article-date">
+	  <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/kafka/" rel="tag">kafka</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="配置参数"><a href="#配置参数" class="headerlink" title="配置参数"></a>配置参数</h3><p>Kafka有两个很重要的配置参数：acks 与 min.insync.replicas 。其中，acks 是producer的配置参数，而 min.insync.replicas 是broker端的配置参数。这两个参数对于生产者发送数据的可靠性起了很大的作用。</p>
+<h3 id="kafka-分区副本"><a href="#kafka-分区副本" class="headerlink" title="kafka 分区副本"></a>kafka 分区副本</h3><p>kafka 的topic是可以分区的，并且可以为分区配置多个副本，改配置可以通过 replication.factor 参数实现。 Kafka中的分区副本包括两种类型：领导者副本（Leader Replica）和追随者副本（Follower Replica)，每个分区在创建时都要选举一个副本作为领导者副本，其余的副本自动变为追随者副本。</p>
+<p>在Kafka中，追随者副本是不对外提供服务的，也就是说，追随者副本不能响应消费者和生产者的读写请求。所有的请求都必须由领导者副本来处理。换句话说，所有的读写请求都必须发往领导者副本所在的Broker，由该 Broker 负责处理。 追随者副本不处理客户端请求，它唯一的任务就是从领导者副本异步拉取消息，并写入到自己的提交日志中，从而实现与领导者副本的同步。</p>
+<p>Kafka默认的副本因子是3，即每个分区只有1个leader副本和2个follower副本。具体如下图所示：<br><img src="/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-5eb37b02966e11f1d6a2c6a8e1ecc9b9_720w-1704100255162-3-1704100402093-20.webp" alt="img"></p>
+<p>上面提到生产者客户端仅写入Leader broker，跟随者异步复制数据。由于Kafka是一个分布式系统，必然会存在与 Leader 不能实时同步的风险，所以需要一种方法来判断这些追随者是否跟上了领导者的步伐，即追随者是否同步了最新的数据。换句话说，Kafka 要明确地告诉我们，追随者副本到底在什么条件下才算与 Leader 同步？这就是下面所要说的ISR同步副本机制。</p>
+<h2 id="同步副本-In-sync-replicas"><a href="#同步副本-In-sync-replicas" class="headerlink" title="同步副本(In-sync replicas)"></a>同步副本(In-sync replicas)</h2><p>In-sync replica (ISR) 称之为同步副本，ISR中的副本都是与Leader进行同步的副本，所以不在该列表的 follower 会被认为与 Leader 是不同步的。那么，ISR中存在是什么副本呢？首先可以明确的是：Leader副本总是存在于ISR中。而 follower 副本是否在ISR中，取决于该follower副本是否与Leader副本保持了“同步”。</p>
+<blockquote>
+<p>对于”follower副本是否与Leader副本保持了同步”的理解如下：<br>1）上面所说的同步不是指完全的同步，即并不是说一旦follower副本同步滞后与Leader副本，就会被踢出ISR列表。<br>2）Kafka的broker端有一个参数<code>replica.lag.time.max.ms</code>, 该参数表示follower副本滞后与Leader副本的最长时间间隔，默认是10秒. 这就意味着，只要follower副本落后于leader副本的时间间隔不超过10秒，就可以认为该follower副本与leader副本是同步的，所以哪怕当前follower副本落后于Leader副本几条消息，只要在10秒之内赶上Leader副本，就不会被踢出出局。<br>3）如果follower副本被踢出ISR列表，等到该副本追上了Leader副本的进度，该副本会被再次加入到ISR列表中，所以ISR是一个动态列表，并不是静态不变的。<br><img src="/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-a6bce3e6b3b2830e654a36342206d410_720w.png" alt="img"></p>
+</blockquote>
+<p>如上图所示：Broker3 上的 partition1 副本超过了规定时间，未与 Leader 副本同步，所以被踢出ISR列表，此时的ISR为[1,3]。</p>
+<h2 id="acks确认机制"><a href="#acks确认机制" class="headerlink" title="acks确认机制"></a>acks确认机制</h2><p>acks 参数指定了必须要有多少个分区副本收到消息，生产者才认为该消息是写入成功的，这个参数对于消息是否丢失起着重要作用，该参数的配置具体如下：</p>
+<ul>
+<li>acks &#x3D; 0，表示生产者在成功写入消息之前不会等待任何来自服务器的响应。换句话说，一旦出现了问题导致服务器没有收到消息，那么生产者就无从得知，消息也就丢失了。该配置由于不需要等到服务器的响应，所以可以最大速度发送消息，达到很高的吞吐量。</li>
+</ul>
+<p><img src="/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-55567db873e4ffef10dc710567e24131_720w.png" alt="img"></p>
+<ul>
+<li>acks &#x3D; 1，表示只要集群的leader分区副本接收到了消息，就会向生产者发送一个成功响应的ack，此时生产者接收到 ack 之后就可以认为该消息是写入成功的。如果消息无法写入 leader 分区副本（比如网络原因、leader 节点崩溃），生产者会收到一个错误响应。当生产者接收到该错误响应之后，为了避免数据丢失，会重新发送数据。<br>注意：如果生产者收到了错误响应，即便是重新发消息，还是会有可能出现丢数据的现象。比如，如果一个没有收到消息的节点成为了新的Leader，消息就可能丢失。</li>
+</ul>
+<p><img src="/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-d84609c80826c20bcec9822b59a40709_720w.png" alt="img"></p>
+<ul>
+<li>acks &#x3D; all，表示只有所有参与复制的节点（ISR列表的副本）全部收到消息后，生产者才会接收到来自服务器的 ack 响应。这种模式是最高级别的，也是最安全的，可以确保不止一个Broker接收到了消息。但该模式的延迟很高。</li>
+</ul>
+<p><img src="/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-54d2a176d9dc727f38982176327c7237_720w.webp" alt="img"></p>
+<h2 id="最小同步副本"><a href="#最小同步副本" class="headerlink" title="最小同步副本"></a>最小同步副本</h2><p>上面提到，当acks &#x3D; all时，需要所有的副本都同步了才会发送成功响应到生产者。其实这里面存在一个问题：如果Leader副本是唯一的同步副本时，此时相当于acks &#x3D; 1，所以也是不安全的。</p>
+<p>Kafka 的 Broker 端提供了一个参数 min.insync.replicas，该参数控制的是消息至少被写入到多少个副本才算是”真正写入”。该值默认值为1，生产环境设定为一个大于1的值可以提升消息数据可靠性。如果同步副本的数量低于该配置值，生产者会收到错误响应，可以确保消息不丢失。</p>
+<h3 id="场景-1"><a href="#场景-1" class="headerlink" title="场景 1"></a>场景 1</h3><p>如下图，当 min.insync.replicas &#x3D; 2 且 acks &#x3D; all 时，如果此时ISR列表只有[1,2],3被踢出ISR列表，只需要保证两个副本同步了，生产者就会收到成功响应.</p>
+<p><img src="/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-0087ef0495ff85224451a849eb1c79aa_720w.webp" alt="img"></p>
+<h3 id="场景-2"><a href="#场景-2" class="headerlink" title="场景 2"></a>场景 2</h3><p>如下图，当 min.insync.replicas &#x3D; 2，如果此时ISR列表只有 [1]，而 2 和 3 被踢出ISR列表：那么，当 acks &#x3D; all 时，则不能成功写入数据；当 acks &#x3D; 0 或者 acks &#x3D; 1 可以成功写入数据。</p>
+<p><img src="/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-643579cef34f061534472f4249d8ab07_720w.png" alt="img"></p>
+<h3 id="场景-3"><a href="#场景-3" class="headerlink" title="场景 3"></a>场景 3</h3><p>如果 acks &#x3D; all 且 min.insync.replicas &#x3D; 2，此时ISR列表为[1,2,3]，那么还是会等到所有的同步副本都同步了消息，才会向生产者发送成功响应的ack。因为 min.insync.replicas &#x3D; 2 只是一个最低限制，即同步副本少于该配置值，则会抛异常；而 acks &#x3D; all，是需要保证所有的ISR列表的副本都同步了才可以发送成功响应。这种情况是很容易引起误解的。如下图所示：</p>
+<p><img src="/hexo_blog/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/assets/v2-04ebf9e3f84be19871ec66be59d6ff2e_720w.png" alt="img"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>acks &#x3D; 0 时，生产者在成功写入消息之前不会等待任何来自服务器的响应。</p>
+<p>acks &#x3D; 1 时，只要集群的leader分区副本接收到了消息，就会向生产者发送一个成功响应的ack。</p>
+<p>acks &#x3D; all 时，只有所有参与复制的节点(ISR列表的副本)全部收到消息时，生产者才会接收到来自服务器的响应，此时如果ISR同步副本的个数小于<code>min.insync.replicas</code>的值，消息不会被写入。</p>
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" title="kafka集群部署（无zookeep方式）"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2021/06/22/nginx/Nginx%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" title="Nginx反向代理集群部署"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

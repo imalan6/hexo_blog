@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>ThreadLocal 本地局部变量 | Hexo</title>
+  <meta name="description" content="ThreadLocal 本地局部变量作用在涉及到多线程需要共享某一资源，但又不能相互影响，必须实现互斥访问时，可以有两种解决思路： 1）使用互斥锁，互斥访问资源。比如synchronized关键字，那么在每个时刻只能有一个线程使用该资源，用完后让出位置，其他线程继续使用。这种方式的缺点在于增加了线程间的竞争，降低了效率。 2）为每个线程创建一份资源，访问相互不干预。这样的思路就是将资源进行复制，每">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ThreadLocal 本地局部变量">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2018/07/16/concurrency/ThreadLocal%E6%9C%AC%E5%9C%B0%E5%B1%80%E9%83%A8%E5%8F%98%E9%87%8F/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="ThreadLocal 本地局部变量作用在涉及到多线程需要共享某一资源，但又不能相互影响，必须实现互斥访问时，可以有两种解决思路： 1）使用互斥锁，互斥访问资源。比如synchronized关键字，那么在每个时刻只能有一个线程使用该资源，用完后让出位置，其他线程继续使用。这种方式的缺点在于增加了线程间的竞争，降低了效率。 2）为每个线程创建一份资源，访问相互不干预。这样的思路就是将资源进行复制，每">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/03/04/smBHuvWh29PinDV.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/04/Yp8wkiRAmq3TQxc.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/03/ErVnLgXbWSqodF9.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/03/dRo4sjA5qgytU1x.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/03/KJHlWn5RbNPrU7O.png">
+<meta property="article:published_time" content="2018-07-16T13:13:26.000Z">
+<meta property="article:modified_time" content="2024-02-14T09:52:19.180Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="多线程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/03/04/smBHuvWh29PinDV.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2018/07/16/concurrency/ThreadLocal%E6%9C%AC%E5%9C%B0%E5%B1%80%E9%83%A8%E5%8F%98%E9%87%8F/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-concurrency/ThreadLocal本地局部变量" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      ThreadLocal 本地局部变量
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2018/07/16/concurrency/ThreadLocal%E6%9C%AC%E5%9C%B0%E5%B1%80%E9%83%A8%E5%8F%98%E9%87%8F/" class="article-date">
+	  <time datetime="2018-07-16T13:13:26.000Z" itemprop="datePublished">2018-07-16</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/java/">java</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/java/" rel="tag">java</a>, <a class="article-tag-link-link" href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" rel="tag">多线程</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2018/07/16/concurrency/ThreadLocal%E6%9C%AC%E5%9C%B0%E5%B1%80%E9%83%A8%E5%8F%98%E9%87%8F/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="ThreadLocal-本地局部变量"><a href="#ThreadLocal-本地局部变量" class="headerlink" title="ThreadLocal 本地局部变量"></a>ThreadLocal 本地局部变量</h1><h2 id="作用"><a href="#作用" class="headerlink" title="作用"></a>作用</h2><p>在涉及到多线程需要共享某一资源，但又不能相互影响，必须实现互斥访问时，可以有两种解决思路：</p>
+<p>1）使用互斥锁，互斥访问资源。比如<code>synchronized</code>关键字，那么在每个时刻只能有一个线程使用该资源，用完后让出位置，其他线程继续使用。这种方式的缺点在于增加了线程间的竞争，降低了效率。</p>
+<p>2）为每个线程创建一份资源，访问相互不干预。这样的思路就是将资源进行复制，每个线程使用自己的，各个线程相互不影响，比如使用<code>ThreadLocal</code>为每个线程保存一份资源。</p>
+<p>如果说<code>synchronized</code>是以“时间换空间”，那么<code>ThreadLocal</code>就是 “以空间换时间” 。因为<code>ThreadLocal</code>的原理就是：对于要在线程间共享的资源或变量，为每个线程都提供一份，从而不同线程之间各自使用各自的，互不影响，从而达到并发访问而不出现问题。</p>
+<p>当使用<code>ThreadLocal</code>维护变量的时候，为每一个使用该变量的线程提供一个独立的变量副本，即每个线程内部都会有一个该变量，这样同时多个线程访问该变量并不会彼此相互影响，因此他们使用的都是自己从内存中拷贝过来的变量的副本，这样就不存在线程安全问题，也不会影响程序的执行性能。</p>
+<h2 id="应用实例"><a href="#应用实例" class="headerlink" title="应用实例"></a>应用实例</h2><p>这里有个问题，直接看局部变量和<code>ThreadLocal</code>起到的作用似乎是一样的，都是保证了并发环境下线程数据的安全性。那是不是完全可以用局部变量来代替<code>ThreadLocal</code>？其实不是这样的。<code>ThreadLocal</code>提供的是一种线程局部变量，这些变量不同于其它变量的点在于每个线程在获取变量的时候，都拥有它自己相对独立的变量初始化拷贝。</p>
+<p><code>ThreadLocal</code>不是为了满足多线程安全而开发出来的，因为局部变量已经足够安全。<code>ThreadLocal</code>是为了方便线程处理自己的某种状态。可以看到<code>ThreadLocal</code>实例化所处的位置，是一个线程共有区域。好比一个银行和个人，我们可以把钱存在银行，也可以把钱存在家。存在家里的钱是局部变量，仅供个人使用；存在银行里的钱也不是说任何人都可以随便取，也只有我们以个人身份才能取。</p>
+<ul>
+<li>关于数据库连接的例子</li>
+</ul>
+<p>如下是一个数据库链接管理类代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">ConnectionManager</span> &#123;</span><br><span class="line">     </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">Connection</span> <span class="variable">connect</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">     </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Connection <span class="title function_">openConnection</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">if</span>(connect == <span class="literal">null</span>)&#123;</span><br><span class="line">            connect = DriverManager.getConnection();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> connect;</span><br><span class="line">    &#125;</span><br><span class="line">     </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">closeConnection</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">if</span>(connect != <span class="literal">null</span>)</span><br><span class="line">            connect.close();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上这段代码在单线程中运行使用是没有任何问题的，但是如果在多线程中使用会存在线程安全问题：</p>
+<p>1）这里面的2个方法都没有进行同步，很可能在<code>openConnection</code>方法中会多次创建<code>connection</code>对象；</p>
+<p>2）<code>connection</code>对象是共享变量，那么在调用<code>connection</code>对象的地方需要使用互斥锁来保障线程安全，因为很可能一个线程在使用<code>connect</code>进行数据库操作，而另外一个线程调用<code>closeConnection</code>关闭了连接。</p>
+<p>所以出于线程安全的考虑，可以将这段代码的两个方法进行同步处理。但这样将会大大影响程序执行效率，因为一个线程在使用<code>connect</code>进行数据库操作的时候，其他线程只有等待。当然解决这个问题可以有好几种方式：</p>
+<p>1）每次调用<code>openConnection</code>都创建新的<code>connection</code>对象，比如在<code>ConnectionManager</code>类中去掉<code>if(connect == null)</code>的判断，这样每个线程每次操作都会创建新的<code>connection</code>对象，也就不存在线程间共享使用<code>connection</code>的问题了。</p>
+<p>2）在每个需要使用数据库连接的方法中具体使用时才创建数据库链接，然后在方法调用完毕再释放这个连接。比如下面这样：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">insert</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">ConnectionManager</span> <span class="variable">connectionManager</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ConnectionManager</span>();</span><br><span class="line">    <span class="type">Connection</span> <span class="variable">connection</span> <span class="operator">=</span> connectionManager.openConnection();</span><br><span class="line">         </span><br><span class="line">    <span class="comment">//使用connection进行操作</span></span><br><span class="line">        </span><br><span class="line">    connectionManager.closeConnection();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样每次都是在方法内部创建连接，方法运行完就关闭，不同<code>connection</code>对象使用的周期仅限于方法内，那么线程之间自然也不存在线程安全问题了。但这种方式需要在方法中频繁地开启和关闭数据库连接，这不仅严重影响程序执行效率，还可能导致数据库服务器压力过大。</p>
+<p>3）使用<code>ThreadLocal</code>为每个线程保存一个<code>connection</code>对象的副本，线程之间使用互不影响，这样就不存在线程安全问题，也不会严重影响程序执行性能。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">ConnectionManager</span> &#123;</span><br><span class="line">    <span class="comment">// 定义一个用于放置数据库连接的局部线程变量（使每个线程都拥有自己的连接）</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> ThreadLocal&lt;Connection&gt; connContainer = <span class="keyword">new</span> <span class="title class_">ThreadLocal</span>&lt;Connection&gt;();</span><br><span class="line">     </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Connection <span class="title function_">openConnection</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">Connection</span> <span class="variable">conn</span> <span class="operator">=</span> connContainer.get();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (conn == <span class="literal">null</span>) &#123;</span><br><span class="line">                conn = DriverManager.getConnection();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            connContainer.set(conn);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> conn;</span><br><span class="line">    &#125;</span><br><span class="line">     </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">closeConnection</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">Connection</span> <span class="variable">conn</span> <span class="operator">=</span> connContainer.get();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (conn != <span class="literal">null</span>) &#123;</span><br><span class="line">                conn.close();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            connContainer.remove();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h2><p><code>ThreadLocal</code>的主要作用是做数据隔离，填充的数据只属于当前线程，变量的数据对别的线程而言是相对隔离的，在多线程环境下，可以防止自己的变量被其它线程篡改。<code>ThreadLocal</code>又被叫做线程局部变量，在每个线程中都创建了一个<code>ThreadLocalMap</code>对象，每个线程可以访问自己内部<code>ThreadLocalMap</code>对象内的<code>value</code>。这里需要注意<code>ThreadLocalMap</code>，虽然带有<code>Map</code>这个词，但是它并没有实现<code>Map</code>接口，仅仅是个类名而已，可以说跟<code>Map</code>没有半毛钱关系。</p>
+<p>那么ThreadLocal是如何实现为每个线程创建变量副本的呢？首先我们来看下<code>ThreadLocal</code>的<code>set</code>方法。<code>set</code>方法在初始化变量值的时候会被调用。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">set</span><span class="params">(T value)</span> &#123;</span><br><span class="line">        <span class="type">Thread</span> <span class="variable">t</span> <span class="operator">=</span> Thread.currentThread();</span><br><span class="line">        <span class="type">ThreadLocalMap</span> <span class="variable">map</span> <span class="operator">=</span> getMap(t);</span><br><span class="line">        <span class="keyword">if</span> (map != <span class="literal">null</span>) &#123;</span><br><span class="line">            map.set(<span class="built_in">this</span>, value);</span><br><span class="line">        &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">        	<span class="comment">//创建ThreadLocalMap</span></span><br><span class="line">            createMap(t, value);</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> <span class="title function_">createMap</span><span class="params">(Thread t, T firstValue)</span> &#123;</span><br><span class="line">   <span class="comment">//当前线程的成员变量threadLocals持有ThreadLocalMap的引用，而ThreadLocal对象（this）仅用来作为key保存和获取值</span></span><br><span class="line">   t.threadLocals = <span class="keyword">new</span> <span class="title class_">ThreadLocalMap</span>(<span class="built_in">this</span>, firstValue);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当前线程的<code>ThreadLocal</code>在第一次调用<code>set</code>方法的时候会创建<code>ThreadLocalMap</code>并设置上相应的值。每个线程都有一个<code>threadLocals</code>成员，引用类型是<code>ThreadLocalMap</code>，以<code>ThreadLocal</code>和变量值作为参数。这样，我们所使用的<code>ThreadLocal</code>变量的实际数据，通过<code>get</code>方法取值的时候，就是通过取出<code>Thread</code>中<code>threadLocals</code>引用的<code>ThreadLocalMap</code>，然后从这个<code>ThreadLocalMap</code>中根据当前<code>ThreadLocal</code>对象作为参数，取出数据。</p>
+<p><img src="https://i.loli.net/2021/03/04/smBHuvWh29PinDV.png" alt="5.png"></p>
+<p>也就是说其实不同线程取到的变量副本都是由线程本身保存了，只是借助<code>ThreadLocal</code>去获取，不是存放于<code>ThreadLocal</code>中。其实也可以这么理解，每个线程各自维护了一个保存有变量副本的<code>ThreadLocalMap</code>，而<code>ThreadLocal</code>其实只是个符号意义，本身不存储变量副本，仅仅是用来索引各个线程中保存的变量副本数据而已。</p>
+<p><img src="https://i.loli.net/2021/03/04/Yp8wkiRAmq3TQxc.png" alt="4.png"></p>
+<h2 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h2><ul>
+<li><strong>内存泄露问题</strong></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">static class Entry extends WeakReference&lt;ThreadLocal&lt;?&gt;&gt; &#123;</span><br><span class="line">    Object value;</span><br><span class="line">    Entry(ThreadLocal&lt;?&gt; k, Object v) &#123;</span><br><span class="line">    	super(k);</span><br><span class="line">    	value = v;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>ThreadLocal</code>在保存的时候会把自己当做 Key 存在线程的<code>ThreadLocalMap</code>中，正常情况应该是<code>key</code>和<code>value</code>都应该被外界强引用才对，但是<code>key</code>被设计成<code>WeakReference</code>弱引用了。这就导致了一个问题，<code>ThreadLocal</code>在没有外部强引用时，发生<code>GC</code>时会被回收，如果创建<code>ThreadLocal</code>的线程一直持续运行，那么这个<code>Entry</code>对象中的<code>value</code>就有可能一直得不到回收，发生内存泄露。</p>
+<p>在<code>ThreadLocal</code>中内存泄漏是指<code>ThreadLocalMap</code>中的<code>Entry</code>中 的<code>key</code>为<code>null</code>，而<code>value</code>不为<code>null</code>。因为<code>key</code>为<code>null</code>导致<code>value</code>一直访问不到，而根据可达性分析，始终有<code>threadRef -&gt; currentThread -&gt; threadLocalMap -&gt; entry -&gt; valueRef -&gt; valueMemory</code>，导致在垃圾回收的时候进行可达性分析的时候，<code>value</code>可达从而不会被回收掉，但是该value永远不能被访问到，这样就存在了内存泄漏。</p>
+<p>因为<code>Entry</code>的<code>key</code>是弱引用，所以在<code>gc</code>的时候<code>key</code>会被回收，而<code>value</code>是强引用，导致<code>value</code>不会被回收。</p>
+<p>如果不使用弱引用也会可能会发生内存泄漏，只要在业务代码里，将<code>ThreadLocal</code>的引用置为<code>null</code>，也会导致<code>Entry</code>中<code>value</code>访问不到，但又因为可达，所以<code>gc</code>时候不会被回收，相当于这部分内存资源被浪费了。</p>
+<p><img src="https://i.loli.net/2021/03/03/ErVnLgXbWSqodF9.png" alt="1.png"></p>
+<p>那为什么<code>Entry</code>的<code>key</code>使用弱引用呢？</p>
+<p>假设<code>ThreadLocal</code>使用的是强引用，在业务代码中执行<code>ThreadLocal Instance = null</code>操作，以清理掉<code>ThreadLocal</code>实例的目的，但是因为<code>ThreadLocalMap</code>的<code>Entry</code>强引用<code>ThreadLocal</code>，因此在<code>gc</code>的时候进行可达性分析，<code>ThreadLocal</code>依然可达，对<code>ThreadLocal</code>并不会进行垃圾回收，这样就无法真正达到业务逻辑的目的，出现逻辑错误。假设<code>Entry</code>弱引用<code>ThreadLocal</code>，尽管会出现内存泄漏的问题，但是在<code>ThreadLocal</code>的生命周期里（<code>set，getEntry，remove</code>）里，都会针对<code>key</code>为<code>null</code>的脏<code>entry</code>进行处理。<br><code>ThreadLocal</code>源码中其实已经对内存泄漏问题做了很多优化，在<code>set，get，remove</code>方法中都会对<code>key</code>为<code>null</code>的但是<code>value</code>不为<code>null</code>的<code>Entry</code>进行<code>value</code>置<code>null</code>操作，使得<code>value</code>的引用为<code>null</code>，可达性失败，在<code>gc</code>是可以回收<code>value</code>的内存。</p>
+<p>在日常使用中，最后用完<code>ThreadLocal</code>后，记得调用<code>remove</code>方法。因为如果不调用<code>remove</code>方法，当一次<code>gc</code>执行，这个<code>value</code>就会造成内存泄漏直到当前线程结束（线程结束，<code>ThreaLocalMap</code>会被置为null，而<code>ThreaLocalMap</code>中的<code>Entry</code>也就不可达会被回收，一切都被回收）</p>
+<p>线程结束时会执行<code>Thread.exit</code>方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">exit</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (group != <span class="literal">null</span>) &#123;</span><br><span class="line">        group.threadTerminated(<span class="built_in">this</span>);</span><br><span class="line">        group = <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* Aggressively null out all reference fields: see bug 4006245 */</span></span><br><span class="line">    target = <span class="literal">null</span>;</span><br><span class="line">    <span class="comment">/* Speed the release of some of these resources */</span></span><br><span class="line">    threadLocals = <span class="literal">null</span>;</span><br><span class="line">    inheritableThreadLocals = <span class="literal">null</span>;</span><br><span class="line">    inheritedAccessControlContext = <span class="literal">null</span>;</span><br><span class="line">    blocker = <span class="literal">null</span>;</span><br><span class="line">    uncaughtExceptionHandler = <span class="literal">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>重写<code>initialValue</code>方法初始化变量值</strong></li>
+</ul>
+<p>先看一个简单的例子，覆盖<code>ThreadLocal</code>的<code>initialValue</code>方法初始化变量值，如下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">        </span><br><span class="line">    <span class="comment">//创建一个 Integer 型的线程本地变量</span></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> ThreadLocal&lt;Integer&gt; local = <span class="keyword">new</span> <span class="title class_">ThreadLocal</span>&lt;Integer&gt;() &#123;</span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="keyword">protected</span> Integer <span class="title function_">initialValue</span><span class="params">()</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">		Thread[] threads = <span class="keyword">new</span> <span class="title class_">Thread</span>[<span class="number">5</span>];</span><br><span class="line">		<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">j</span> <span class="operator">=</span> <span class="number">0</span>; j &lt; <span class="number">5</span>; j++) &#123;		</span><br><span class="line">               threads[j] = <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">				<span class="meta">@Override</span></span><br><span class="line">				<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                    <span class="comment">//获取当前线程的本地变量，然后累加5次</span></span><br><span class="line">					<span class="type">int</span> <span class="variable">num</span> <span class="operator">=</span> local.get();</span><br><span class="line">					<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">5</span>; i++) &#123;</span><br><span class="line">						num++;</span><br><span class="line">					&#125;</span><br><span class="line">                    <span class="comment">//重新设置累加后的本地变量</span></span><br><span class="line">					local.set(num);</span><br><span class="line">					System.out.println(Thread.currentThread().getName() + <span class="string">&quot; : &quot;</span>+ local.get());</span><br><span class="line"></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;, <span class="string">&quot;Thread-&quot;</span> + j);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span> (Thread thread : threads) &#123;</span><br><span class="line">			thread.start();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行后结果：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Thread-0 : 5</span><br><span class="line">Thread-2 : 5</span><br><span class="line">Thread-3 : 5</span><br><span class="line">Thread-1 : 5</span><br><span class="line">Thread-4 : 5</span><br></pre></td></tr></table></figure>
+
+<p>我们看到，每个线程累加后的结果都是5，各个线程处理自己的本地变量值，线程之间互不影响。现在，我们对<code>initialValue</code>方法的返回值稍作改动如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThreadLocalTest</span> &#123;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="type">Index</span> <span class="variable">num</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Index</span>();</span><br><span class="line">        <span class="comment">//创建一个Index类型的本地变量 </span></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> ThreadLocal&lt;Index&gt; local = <span class="keyword">new</span> <span class="title class_">ThreadLocal</span>&lt;Index&gt;() &#123;</span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="keyword">protected</span> Index <span class="title function_">initialValue</span><span class="params">()</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> num;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">		Thread[] threads = <span class="keyword">new</span> <span class="title class_">Thread</span>[<span class="number">5</span>];</span><br><span class="line">		<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">j</span> <span class="operator">=</span> <span class="number">0</span>; j &lt; <span class="number">5</span>; j++) &#123;</span><br><span class="line">			threads[j] = <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">				<span class="meta">@Override</span></span><br><span class="line">				<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                                        <span class="comment">//取出当前线程的本地变量，并累加1000次</span></span><br><span class="line">					<span class="type">Index</span> <span class="variable">index</span> <span class="operator">=</span> local.get();</span><br><span class="line">					<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++) &#123;                                          </span><br><span class="line">						index.increase();</span><br><span class="line">					&#125;</span><br><span class="line">					System.out.println(Thread.currentThread().getName() + <span class="string">&quot; : &quot;</span>+ index.num);</span><br><span class="line"></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;, <span class="string">&quot;Thread-&quot;</span> + j);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">for</span> (Thread thread : threads) &#123;</span><br><span class="line">			thread.start();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">Index</span> &#123;</span><br><span class="line">		<span class="type">int</span> num;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">increase</span><span class="params">()</span> &#123;</span><br><span class="line">			num++;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行后我们发现结果如下（每次运行还都不一样）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Thread-0 : 1390</span><br><span class="line">Thread-3 : 2390</span><br><span class="line">Thread-4 : 4390</span><br><span class="line">Thread-2 : 3491</span><br><span class="line">Thread-1 : 1390</span><br></pre></td></tr></table></figure>
+
+<p>上面代码中，我们通过覆盖<code>initialValue</code>方法来给我们的<code>ThreadLocal</code>提供初始值，每个线程都会获取这个初始值的一个副本。而现在我们的初始值是<code>num</code>，<code>num</code>是这个对象的引用。也就是说我们的初始值是一个引用，引用的副本和引用指向的是同一个对象。</p>
+<p><img src="https://i.loli.net/2021/03/03/dRo4sjA5qgytU1x.png" alt="2.png"></p>
+<p>如果我们想给每一个线程都保存一个<code>Index</code>对象，就应该创建对象的副本而不是对象引用的副本，比如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> ThreadLocal&lt;Index&gt; local = <span class="keyword">new</span> <span class="title class_">ThreadLocal</span>&lt;Index&gt;() &#123;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">protected</span> Index <span class="title function_">initialValue</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">Index</span>(); <span class="comment">//注意这里</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>对象的拷贝图示：</p>
+<p> <img src="https://i.loli.net/2021/03/03/KJHlWn5RbNPrU7O.png" alt="3.png"></p>
+<p>如此运行，结果就正确了。</p>
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2018/07/16/cache/Redis%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" title="Redis底层数据结构"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2018/07/03/concurrency/ReentrantLock%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" title="ReentrantLock 实现原理"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

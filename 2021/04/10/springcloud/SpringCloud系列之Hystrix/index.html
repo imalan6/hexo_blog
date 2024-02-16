@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>SpringCloud系列之Hystrix | Hexo</title>
+  <meta name="description" content="SpringCloud系列之Hystrix服务雪崩在一个高度服务化的微服务系统中，一个业务逻辑处理通常会依赖多个服务。 如果其中的某一个服务不可用，就会出现线程池里所有线程都因等待响应而被阻塞，从而造成服务雪崩。这种因服务提供者不可用而导致服务调用者不可用，并将不可用逐渐放大传播的过程，就叫服务雪崩效应。比如程序bug、大流量请求、硬件故障、缓存雪崩击穿等。如下是一个分布式系统中服务调用的常见模型">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SpringCloud系列之Hystrix">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2021/04/10/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BHystrix/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="SpringCloud系列之Hystrix服务雪崩在一个高度服务化的微服务系统中，一个业务逻辑处理通常会依赖多个服务。 如果其中的某一个服务不可用，就会出现线程池里所有线程都因等待响应而被阻塞，从而造成服务雪崩。这种因服务提供者不可用而导致服务调用者不可用，并将不可用逐渐放大传播的过程，就叫服务雪崩效应。比如程序bug、大流量请求、硬件故障、缓存雪崩击穿等。如下是一个分布式系统中服务调用的常见模型">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/03/24/yA2aeO7NMFkKn8j.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/24/w2JExNzXjsFQy1S.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/24/ps9EIuzlgw1Ay3Y.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/24/mYOxg8DE2o5U1tu.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/24/kwITdDYfLVynRoa.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/24/gyeGPKJ8mq17U2n.png">
+<meta property="article:published_time" content="2021-04-10T15:05:15.000Z">
+<meta property="article:modified_time" content="2024-02-14T11:32:17.978Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="srpingcloud">
+<meta property="article:tag" content="熔断">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/03/24/yA2aeO7NMFkKn8j.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2021/04/10/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BHystrix/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-springcloud/SpringCloud系列之Hystrix" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      SpringCloud系列之Hystrix
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2021/04/10/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BHystrix/" class="article-date">
+	  <time datetime="2021-04-10T15:05:15.000Z" itemprop="datePublished">2021-04-10</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/srpingcloud/" rel="tag">srpingcloud</a>, <a class="article-tag-link-link" href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" rel="tag">熔断</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2021/04/10/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BHystrix/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="SpringCloud系列之Hystrix"><a href="#SpringCloud系列之Hystrix" class="headerlink" title="SpringCloud系列之Hystrix"></a>SpringCloud系列之Hystrix</h1><h2 id="服务雪崩"><a href="#服务雪崩" class="headerlink" title="服务雪崩"></a>服务雪崩</h2><p>在一个高度服务化的微服务系统中，一个业务逻辑处理通常会依赖多个服务。 如果其中的某一个服务不可用，就会出现线程池里所有线程都因等待响应而被阻塞，从而造成服务雪崩。这种因服务提供者不可用而导致服务调用者不可用，并将不可用逐渐放大传播的过程，就叫服务雪崩效应。比如程序<code>bug</code>、大流量请求、硬件故障、缓存雪崩击穿等。如下是一个分布式系统中服务调用的常见模型：</p>
+<p><img src="https://i.loli.net/2021/03/24/yA2aeO7NMFkKn8j.png" alt="2.png"></p>
+<p>在服务提供者不可用时，服务调用者可能会出现大量重试情况，比如用户手动重试操作、代码逻辑重试操作等，这些重试操作最终导致请求量进一步加大。当服务调用者使用的同步调用时，大量等待线程占用了大量系统资源。一旦线程资源被耗尽，服务调用者提供的服务也将处于不可用状态，于是服务雪崩效应就产生了。所以，导致雪崩效应的根本原因就是大量请求线程同步等待造成的资源耗尽。</p>
+<h2 id="产生原因"><a href="#产生原因" class="headerlink" title="产生原因"></a>产生原因</h2><p>导致服务不可用的原因有很多，除了服务提供者不可用之外还有其他因素也可能产生雪崩效应：</p>
+<ul>
+<li>服务调用者请求量激增，导致系统负载升高。比如异常流量、用户重试、代码逻辑重复等。</li>
+<li>缓存击穿，缓存雪崩等，导致请求都直接转向数据库。</li>
+<li>重试机制，比如<code>RPC</code>框架的<code>Retry</code>次数，每次重试都可能会进一步恶化服务提供者。</li>
+<li>硬件故障，比如设备出问题，机房断电等情况。</li>
+</ul>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>针对服务调用者自身请求量激增问题，可以采取自动扩容方式应对突发流量，或在负载均衡器上实现限流功能。</p>
+<p>针对重试问题，可以减少或关闭重试机制。</p>
+<p>针对硬件故障，可以采取多机备份，异地多活等方案。</p>
+<p>针对服务不可用而导致的系统雪崩问题，主要有以下解决方案：</p>
+<ul>
+<li>超时机制</li>
+</ul>
+<p>在不做任何处理的情况下，服务提供者不可用会导致消费者请求线程强制等待，而造成系统资源耗尽。加入超时机制，一旦超时，就释放资源。由于释放资源速度较快，一定程度上可以抑制资源耗尽的问题。</p>
+<ul>
+<li>服务隔离</li>
+</ul>
+<p>限制请求核心服务提供者的流量，把流量拦截在核心服务之外，这样可以更好地保证核心服务提供者不出问题。对于一些出问题的服务可以限制流量访问，只分配固定线程资源访问，这样能使整体的资源不至于被出问题的服务耗尽。可以通过线程池+队列的方式，通过信号量的方式进行处理。</p>
+<ul>
+<li>服务熔断</li>
+</ul>
+<p>当远程服务不稳定或网络抖动严重时暂时关闭。实时监测应用，一旦发现一定时间内服务调用的失败次数&#x2F;失败率达到一定阈值时，服务调用就断开(断路器)。此时，服务请求直接返回，不继续执行原本调用逻辑。断开一段时间后（比如10秒），断路器进入半开状态，此时允许调用一次该服务。如果调用成功，则断路器关闭，服务进入正常调用；如果调用仍然失败，断路器继续回到打开状态。经过一段时间（比如10秒）再进入半开状态，尝试调用服务。通过这种断路器打开—半开—关闭的方式， 可以控制服务调用者是否执行服务调用，从而避免频繁调用失败，浪费系统资源。</p>
+<ul>
+<li>服务降级</li>
+</ul>
+<p>所谓服务降级，就是调用者提前实现一个<code>fallback</code>熔断回调，当某个服务熔断无法被调用时，服务调用者就会调用<code>fallback</code>直接返回一个缺省值。比如，备用接口&#x2F;缓存&#x2F;<code>mock</code>数据等。这样业务处理方式更友好。</p>
+<h2 id="Hystrix使用"><a href="#Hystrix使用" class="headerlink" title="Hystrix使用"></a>Hystrix使用</h2><p><code>Hystrix</code>是由<code>Netflix</code>开源的一个延迟和容错库，提供超时机制、限流、熔断、降级全面的功能实现，主要用于隔离访问远程系统、服务或者第三方库，防止级联失败，从而提升系统的可用性与容错性。</p>
+<h4 id="服务隔离"><a href="#服务隔离" class="headerlink" title="服务隔离"></a>服务隔离</h4><p><code>Hystrix</code>采用了舱壁隔离技术，来将外部依赖进行资源隔离，进而避免任何外部依赖的故障导致本服务崩溃。舱壁隔离，是说将船体内部空间区隔划分成若干个隔舱，一旦某几个隔舱发生破损进水，水流不会在其间相互流动，如此一来船舶在受损时，依然能具有足够的浮力和稳定性，进而减低立即沉船的危险。<code>Hystrix</code>的资源隔离策略有两种，分别为：线程池和信号量。</p>
+<p><img src="https://i.loli.net/2021/03/24/w2JExNzXjsFQy1S.png" alt="5.png"></p>
+<ul>
+<li><strong>线程池</strong></li>
+</ul>
+<p>在<code>Hystrix</code>中，如果不使用线程池隔离策略，而是共用一个线程池的话，服务的调用方式如下图：</p>
+<p><img src="https://i.loli.net/2021/03/24/ps9EIuzlgw1Ay3Y.png" alt="3.png"></p>
+<p>这种方法共用一个线程池的方式很容易出现问题，比如：如果方法A请求量很大，调用的服务处理又很慢，那方法A很容易把线程池的线程用完，那方法B和方法C就没有线程可以使用了，只能等待，结果就是超时被熔断。导致这种情况出现，并不是被调用的服务不可用，而是服务调用者根本没有线程去处理这些请求。</p>
+<p>为了避免上面这种情况，如果<code>Hystrix</code>对每个外部调用都单独配一个线程池，这样即使某个外部调用延迟很严重处理不过来，也只是耗尽自己的那个线程池而已，不会影响其他方法的线程池。这样就使得方法间的调用相互隔离开了，互不影响。如下图：</p>
+<p><img src="https://i.loli.net/2021/03/24/mYOxg8DE2o5U1tu.png" alt="4.png"></p>
+<p><code>Hystrix</code>是通过命令模式，将每个类型的业务请求封装成对应的命令请求，比如A方法-&gt;服务1Command，B方法-&gt;服务1Command，C方法-&gt;服务2Command。每个类型的<code>Command</code>对应一个线程池。创建好的线程池放入到<code>ConcurrentHashMap</code>中，比如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">static</span> ConcurrentHashMap&lt;String, HystrixThreadPool&gt; threadPools = <span class="keyword">new</span> <span class="title class_">ConcurrentHashMap</span>&lt;String, HystrixThreadPool&gt;();</span><br><span class="line">threadPools.put(“hystrix-order”, <span class="keyword">new</span> <span class="title class_">HystrixThreadPoolDefault</span>(threadPoolKey, propertiesBuilder));</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>信号量</strong></li>
+</ul>
+<p>用于隔离本地代码，利用信号量限制同时运行的线程数量。使用一个原子计数器（或信号量）来记录当前有多少个线程在运行，当请求进来时先判断计数器的数值，若超过设置的最大线程个数则拒绝该请求，若不超过则通行，这时候计数器+1，请求返回成功后计数器-1。</p>
+<ul>
+<li><strong>区别</strong></li>
+</ul>
+<p>执行线程区别：线程池隔离方式执行依赖代码的线程不是原来的线程；而信号量方式依然是原来的请求线程。</p>
+<p>应用场景区别：线程池隔离适合并发量比较大的第三方应用或者接口；而信号量隔离适合并发量不大的内部应用或中间件。</p>
+<p>执行效率区别：线程池增加了<code>cpu</code>的开销；而信号量不会创建副线程，开销较小。</p>
+<ul>
+<li><strong>注意</strong></li>
+</ul>
+<p>使用线程池隔离时，在某些业务场景下通过<code>ThreadLocal</code>来传递数据会出现问题。因为线程池隔离方式下，<code>Hystrix</code>会将请求放入方法的线程池去执行，这时请求线程就由A线程变成B线程了，<code>ThreadLocal</code>也就消失了。用信号量没问题的，因为还是原来那个线程在处理。</p>
+<h4 id="使用方法"><a href="#使用方法" class="headerlink" title="使用方法"></a>使用方法</h4><h5 id="1）命令方式"><a href="#1）命令方式" class="headerlink" title="1）命令方式"></a>1）命令方式</h5><p><code>hystrix</code>采用了命令模式，客户端需要继承抽象类<code>HystrixCommand</code>并实现其<code>run</code>方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// HelloHystrixCommand要使用Hystrix功能 </span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HelloHystrixCommand</span> <span class="keyword">extends</span> <span class="title class_">HystrixCommand</span> &#123;  </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> String name; </span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">HelloHystrixCommand</span><span class="params">(String name)</span> &#123;   </span><br><span class="line">        <span class="built_in">super</span>(HystrixCommandGroupKey.Factory.asKey(<span class="string">&quot;ExampleGroup&quot;</span>));     </span><br><span class="line">        <span class="built_in">this</span>.name = name; </span><br><span class="line">    &#125; </span><br><span class="line">    <span class="comment">// 如果继承的是HystrixObservableCommand，要重写Observable construct() </span></span><br><span class="line">    <span class="meta">@Override</span> </span><br><span class="line">    <span class="keyword">protected</span> String <span class="title function_">run</span><span class="params">()</span> &#123;     </span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;Hello &quot;</span> + name; </span><br><span class="line">    &#125; </span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+
+<h5 id="2）注解方式"><a href="#2）注解方式" class="headerlink" title="2）注解方式"></a>2）注解方式</h5><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">@HystrixCommand(commandKey = &quot;getCompanyInfoById&quot;,</span><br><span class="line">                    groupKey = &quot;company-info&quot;,</span><br><span class="line">                    threadPoolKey = &quot;company-info&quot;,</span><br><span class="line">                    fallbackMethod = &quot;fallbackMethod&quot;,</span><br><span class="line">                    threadPoolProperties = &#123;</span><br><span class="line">                        @HystrixProperty(name = &quot;coreSize&quot;, value = &quot;30&quot;),</span><br><span class="line">                        @HystrixProperty(name = &quot;maxQueueSize&quot;, value = &quot;101&quot;),</span><br><span class="line">                        @HystrixProperty(name = &quot;keepAliveTimeMinutes&quot;, value = &quot;2&quot;),</span><br><span class="line">                        @HystrixProperty(name = &quot;queueSizeRejectionThreshold&quot;, value = &quot;15&quot;),</span><br><span class="line">                     &#125;)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>commandKey</code>：代表一个接口, 如果不配置，默认是<code>@HystrixCommand</code>注解修饰的函数的函数名。</li>
+<li><code>groupKey</code>：代表一个服务，一个服务可能会暴露多个接口。<code>Hystrix</code>命令默认的线程划分也是根据命令组来实现。默认情况下，<code>Hystrix</code>会让相同组名的命令使用同一个线程池，所以我们需要在创建<code>Hystrix</code>命令时为其指定命令组来实现默认的线程池划分。</li>
+<li><code>threadPoolKey</code>：对线程池进行更细粒度的配置，默认等于<code>groupKey</code>的值。如果依赖服务中的某个接口耗时较长，需要单独特殊处理，最好单独用一个线程池，这时候就可以配置threadpool key。</li>
+<li><code>fallbackMethod</code>：<code>@HystrixCommand</code>注解修饰的函数的回调函数，<code>@HystrixCommand</code>修饰的函数必须和这个回调函数定义在同一个类中，因为定义在了同一个类中，所以<code>fackback method</code>可以是<code>public/private</code>均可。</li>
+<li>线程池配置：<code>coreSize</code>表示核心线程数，<code>hystrix</code>默认是10；<code>maxQueueSize</code>表示线程池的最大队列大小；<code>keepAliveTimeMinutes</code>表示非核心线程空闲时最大存活时间；<code>queueSizeRejectionThreshold</code>：该参数用来为队列设置拒绝阈值。通过该参数，即使队列没有达到最大值也能拒绝请求。</li>
+</ul>
+<p>使用实例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="meta">@RequestMapping(&quot;/user/hello&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestHelloController</span> &#123;</span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> RestTemplate restTemplate;</span><br><span class="line">    <span class="meta">@GetMapping(&quot;/hello&quot;)</span></span><br><span class="line">    <span class="meta">@HystrixCommand(</span></span><br><span class="line"><span class="meta">            fallbackMethod = &quot;HelloFallback&quot;,// 服务降级方法</span></span><br><span class="line"><span class="meta">            // 使用commandProperties 可以配置熔断的一些细节信息</span></span><br><span class="line"><span class="meta">            commandProperties = &#123;</span></span><br><span class="line"><span class="meta">                    //熔断超时时间2s，类似kv形式</span></span><br><span class="line"><span class="meta">                    @HystrixProperty(name = &quot;execution.isolation.thread.timeoutInMilliseconds&quot;,value = &quot;2000&quot;)</span></span><br><span class="line"><span class="meta">            &#125;</span></span><br><span class="line"><span class="meta">    )</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getHi</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">url</span>  <span class="operator">=</span><span class="string">&quot;http://.....&quot;</span>;</span><br><span class="line">        <span class="keyword">return</span> restTemplate.getForObject(url, Integer.class);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 服务降级方法，服务降级后调用该方法返回，返回值类型需要和原方法一致</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">HelloFallback</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="3）与Feign配合使用"><a href="#3）与Feign配合使用" class="headerlink" title="3）与Feign配合使用"></a>3）与Feign配合使用</h5><p>通过配置<code>@FeignClient</code>注解的<code>fallback</code>属性指定一个自定义的<code>fallback</code>处理类。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@FeignClient(value = &quot;service-hi&quot;, fallback = HiFallback.class)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">ITestHi</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping(&quot;/hi&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">testHi</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>HiFallback</code>需要实现<code>ITestHi</code>接口，并且在<code>Spring</code>容器中注册<code>bean</code>。可以有两种方式：一种直接实现<code>ITestHi</code>接口，如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">class</span>  <span class="title class_">HiFallback</span> <span class="keyword">implements</span> <span class="title class_">ITestHi</span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> String <span class="title function_">testHi</span><span class="params">()</span>&#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="string">&quot;error&quot;</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>另一种实现<code>FallbackFactory&lt;ITestHi&gt;</code>接口，如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">class</span>  <span class="title class_">HiFallback</span> <span class="keyword">implements</span> <span class="title class_">FallbackFactory</span>&lt;ITestHi&gt;&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> ITestHi <span class="title function_">create</span><span class="params">(Throwable cause)</span> &#123;</span><br><span class="line">       </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Hystrix监控"><a href="#Hystrix监控" class="headerlink" title="Hystrix监控"></a>Hystrix监控</h2><ul>
+<li><strong>单服务监控</strong></li>
+</ul>
+<p>1）添加依赖</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-netflix-hystrix-dashboard<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-actuator<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>2）启动类添加注解<code>@EnableHystrixDashboard</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@SpringBootApplication</span></span><br><span class="line"><span class="meta">@EnableEurekaClient</span></span><br><span class="line"><span class="meta">@EnableFeignClients(basePackages = &#123;&quot;com.landcode.land.service.consumer.service&quot;&#125;)</span></span><br><span class="line"><span class="meta">@RibbonClient(name = &quot;service-hi&quot;, configuration = RibbonConfig.class)</span></span><br><span class="line"><span class="meta">@EnableCircuitBreaker</span></span><br><span class="line"><span class="meta">@EnableHystrixDashboard</span> <span class="comment">// 打开HystrixDashboard</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ConsumerApplication</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="comment">// TODO Auto-generated method stub</span></span><br><span class="line">        SpringApplication.run(ConsumerApplication.class, args);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="meta">@LoadBalanced</span></span><br><span class="line">    <span class="keyword">public</span> RestTemplate <span class="title function_">restTemplate</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">RestTemplate</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>3）测试</p>
+<p>启动<code>hystrix-dashboard</code>后，输入<code>http://localhost:8081/hystrix</code>，出现如下页面：</p>
+<p><img src="https://i.loli.net/2021/03/24/kwITdDYfLVynRoa.png" alt="1.png"></p>
+<p>在第一个文本框输入要监控的服务，采用<code>ip + 端口 + hystrix.stream</code>格式，比如<code>http://localhost:8801/actuator/hystrix.stream</code>，则会跳转到监控页面。如果点击后出现 “<code>Unable to connect to Command Metric Stream.</code>” 错误。则按如下方式解决：</p>
+<p>在监控服务添加：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">hystrix:</span></span><br><span class="line">  <span class="attr">dashboard:</span></span><br><span class="line">    <span class="attr">proxy-stream-allow-list:</span> <span class="string">&quot;*&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>在被监控服务添加配置类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HystrixDashboardConfig</span> &#123;</span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="keyword">public</span> ServletRegistrationBean <span class="title function_">getServlet</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">HystrixMetricsStreamServlet</span> <span class="variable">streamServlet</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HystrixMetricsStreamServlet</span>();</span><br><span class="line">        <span class="type">ServletRegistrationBean</span> <span class="variable">registrationBean</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ServletRegistrationBean</span>(streamServlet);</span><br><span class="line">        registrationBean.setLoadOnStartup(<span class="number">1</span>);</span><br><span class="line">        registrationBean.addUrlMappings(<span class="string">&quot;/actuator/hystrix.stream&quot;</span>); <span class="comment">//访问路径</span></span><br><span class="line">        registrationBean.setName(<span class="string">&quot;hystrix.stream&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> registrationBean;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<ul>
+<li><strong>Turbine聚合监控数据</strong></li>
+</ul>
+<p>1）创建一个监控服务项目，引入如下依赖：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-starter-turbine<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>2）启动类上配置<code>@EnableTurbine</code>注解：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">@SpringBootApplication</span><br><span class="line">@EnableEurekaClient</span><br><span class="line">@EnableFeignClients(basePackages = &#123;&quot;com.landcode.land.service.consumer.service&quot;&#125;)</span><br><span class="line">@RibbonClient(name = &quot;service-hi&quot;, configuration = RibbonConfig.class)</span><br><span class="line">@EnableCircuitBreaker</span><br><span class="line">@EnableHystrixDashboard </span><br><span class="line">@EnableTurbine // 打开Turbine</span><br><span class="line">public class ConsumerApplication &#123;</span><br><span class="line"></span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        // TODO Auto-generated method stub</span><br><span class="line">        SpringApplication.run(ConsumerApplication.class, args);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Bean</span><br><span class="line">    @LoadBalanced</span><br><span class="line">    public RestTemplate restTemplate() &#123;</span><br><span class="line">        return new RestTemplate();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>3）添加如下配置，指明从哪些微服务收集监控数据</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">turbine:</span></span><br><span class="line">  <span class="attr">app-config:</span> <span class="string">hi,test</span></span><br><span class="line">  <span class="attr">cluster-name-expression:</span> <span class="string">&quot;&#x27;default&#x27;&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>注意<code>turbine</code>的配置，这里收集<code>hi</code>和<code>test</code>服务的日志</p>
+<p>4）启动监控项目后，在<code>hystrix-dashboard中</code>输入<code>http://localhost:8088/turbine.stream</code>,则展示如下聚合结果：</p>
+<p><img src="https://i.loli.net/2021/03/24/gyeGPKJ8mq17U2n.png" alt="0.png"></p>
+<p>以上<code>Turbine</code>聚合微服务的监控数据，然后在<code>hystrix-dashboard</code>展示多个微服务的实时监控数据。但是<code>Turbine</code>有它的局限性，比如如果微服务之间无法通信，或者服务没在<code>Eureka</code>上注册，则<code>Turbine</code>无法收集到微服务的日志。这种情况下，需要借助消息中间件来解决。</p>
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2021/04/21/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BRibbon/" title="SpringCloud系列之Ribbon"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2021/03/29/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BFeign/" title="SpringCloud系列之Feign"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

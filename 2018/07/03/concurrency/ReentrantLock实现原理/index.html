@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>ReentrantLock 实现原理 | Hexo</title>
+  <meta name="description" content="ReentrantLock 实现原理使用synchronized来做同步处理时，锁的获取和释放都是隐式的，实现的原理是通过编译后加上不同的机器指令来实现。 而ReentrantLock就是一个普通的类，它是基于AQS(AbstractQueuedSynchronizer)来实现的。 是一个重入锁：一个线程获得了锁之后仍然可以反复的加锁，不会出现自己阻塞自己的情况。  AQS是Java并发包里实现锁">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ReentrantLock 实现原理">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2018/07/03/concurrency/ReentrantLock%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="ReentrantLock 实现原理使用synchronized来做同步处理时，锁的获取和释放都是隐式的，实现的原理是通过编译后加上不同的机器指令来实现。 而ReentrantLock就是一个普通的类，它是基于AQS(AbstractQueuedSynchronizer)来实现的。 是一个重入锁：一个线程获得了锁之后仍然可以反复的加锁，不会出现自己阻塞自己的情况。  AQS是Java并发包里实现锁">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2018-07-03T14:11:26.000Z">
+<meta property="article:modified_time" content="2024-02-14T09:52:19.139Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="多线程">
+<meta name="twitter:card" content="summary">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2018/07/03/concurrency/ReentrantLock%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-concurrency/ReentrantLock实现原理" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      ReentrantLock 实现原理
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2018/07/03/concurrency/ReentrantLock%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" class="article-date">
+	  <time datetime="2018-07-03T14:11:26.000Z" itemprop="datePublished">2018-07-03</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/java/">java</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/java/" rel="tag">java</a>, <a class="article-tag-link-link" href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" rel="tag">多线程</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2018/07/03/concurrency/ReentrantLock%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="ReentrantLock-实现原理"><a href="#ReentrantLock-实现原理" class="headerlink" title="ReentrantLock 实现原理"></a>ReentrantLock 实现原理</h1><p>使用<code>synchronized</code>来做同步处理时，锁的获取和释放都是隐式的，实现的原理是通过编译后加上不同的机器指令来实现。</p>
+<p>而<code>ReentrantLock</code>就是一个普通的类，它是基于<code>AQS(AbstractQueuedSynchronizer)</code>来实现的。</p>
+<p>是一个重入锁：一个线程获得了锁之后仍然可以反复的加锁，不会出现自己阻塞自己的情况。</p>
+<blockquote>
+<p><code>AQS</code>是<code>Java</code>并发包里实现锁同步的一个重要的基础框架。</p>
+</blockquote>
+<h2 id="锁类型"><a href="#锁类型" class="headerlink" title="锁类型"></a>锁类型</h2><p><code>ReentrantLock</code>分为公平锁和非公平锁，可以通过构造方法来指定具体类型：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//非公平锁，默认</span></span><br><span class="line"><span class="keyword">public</span> <span class="title function_">ReentrantLock</span><span class="params">()</span> &#123;</span><br><span class="line">    sync = <span class="keyword">new</span> <span class="title class_">NonfairSync</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//公平锁</span></span><br><span class="line"><span class="keyword">public</span> <span class="title function_">ReentrantLock</span><span class="params">(<span class="type">boolean</span> fair)</span> &#123;</span><br><span class="line">    sync = fair ? <span class="keyword">new</span> <span class="title class_">FairSync</span>() : <span class="keyword">new</span> <span class="title class_">NonfairSync</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>默认使用非公平锁，它的效率和吞吐量都比公平锁高很多。</p>
+<h2 id="锁使用"><a href="#锁使用" class="headerlink" title="锁使用"></a>锁使用</h2><p>通常的使用方式如下:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="type">ReentrantLock</span> <span class="variable">lock</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ReentrantLock</span>();</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">    lock.lock();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 业务处理</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        lock.unlock();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>特别注意，<code>lock</code>不同于<code>synchronized</code>关键字，需要手动释放。为了防止发生异常导致锁无法释放，通常在<code>finally</code>代码块中释放锁。如果要指定公平锁，只需要在构造方法参数中传入<code>true</code>即可。</p>
+<ul>
+<li><h4 id="公平锁"><a href="#公平锁" class="headerlink" title="公平锁"></a>公平锁</h4></li>
+</ul>
+<p><strong>1、获取锁</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">FairSync</span> <span class="keyword">extends</span> <span class="title class_">Sync</span> &#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">void</span> <span class="title function_">lock</span><span class="params">()</span> &#123;</span><br><span class="line">        acquire(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// AbstractQueuedSynchronizer.acquire(int arg)</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title function_">acquire</span><span class="params">(<span class="type">int</span> arg)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (!tryAcquire(arg) &amp;&amp;</span><br><span class="line">            acquireQueued(addWaiter(Node.EXCLUSIVE), arg))</span><br><span class="line">            selfInterrupt();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">final</span> <span class="type">boolean</span> <span class="title function_">tryAcquire</span><span class="params">(<span class="type">int</span> acquires)</span> &#123;</span><br><span class="line">        <span class="keyword">final</span> <span class="type">Thread</span> <span class="variable">current</span> <span class="operator">=</span> Thread.currentThread();</span><br><span class="line">        <span class="type">int</span> <span class="variable">c</span> <span class="operator">=</span> getState();</span><br><span class="line">        <span class="keyword">if</span> (c == <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="comment">// 和非公平锁相比，这里多了一个判断：是否有线程在等待</span></span><br><span class="line">            <span class="keyword">if</span> (!hasQueuedPredecessors() &amp;&amp;</span><br><span class="line">                compareAndSetState(<span class="number">0</span>, acquires)) &#123;</span><br><span class="line">                setExclusiveOwnerThread(current);</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (current == getExclusiveOwnerThread()) &#123;</span><br><span class="line">            <span class="type">int</span> <span class="variable">nextc</span> <span class="operator">=</span> c + acquires;</span><br><span class="line">            <span class="keyword">if</span> (nextc &lt; <span class="number">0</span>)</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">Error</span>(<span class="string">&quot;Maximum lock count exceeded&quot;</span>);</span><br><span class="line">            setState(nextc);</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>实现步骤：</p>
+<p>1）调用 <code>tryAcquire(arg)</code>尝试获取锁，判断<code>AQS</code>中的锁状态<code>state</code>是否等于 0。当<code>state &gt; 0</code>时，表示锁已经被获取；当<code>state == 0</code>时，表示锁已经释放。</p>
+<p>2）如果<code>state == 0</code>，表示目前没有线程获得锁，那当前线程就可以尝试获取锁；</p>
+<p>3）尝试之前会利用<code>hasQueuedPredecessors()</code>方法判断<code>AQS</code>的队列中是否有其他线程，如果有则不会尝试获取锁，这是公平锁特有的情况。</p>
+<p>4）如果队列中没有线程就利用<code>CAS</code>（<code>compareAndSetState(0, acquires)</code>方法）来将<code>AQS</code>中的<code>state</code>置为1，也就是获取锁，获取成功则调用<code>setExclusiveOwnerThread(current)</code>将当前线程置为获得锁的独占线程。</p>
+<p>如果第 2）步中的<code>state &gt; 0</code>时，说明锁已经被获取了，则判断获取锁的线程是否为当前线程(<code>ReentrantLock</code>支持重入)，如果是则将<code>state + 1</code>。</p>
+<p>6）如果获取锁失败，则将当前线程写入队列。</p>
+<p><strong>2、写入队列</strong></p>
+<p>如果<code>tryAcquire(arg)</code>获取锁失败，则调用<code>addWaiter(Node.EXCLUSIVE)</code>将当前线程封装一个<code>Node</code>对象(<code>addWaiter(Node.EXCLUSIVE)</code>) 并写入队列中。</p>
+<blockquote>
+<p>AQS 中的队列是由 Node 节点组成的双向链表实现的。</p>
+</blockquote>
+<p>node 节点封装代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Node <span class="title function_">addWaiter</span><span class="params">(Node mode)</span> &#123;</span><br><span class="line">    <span class="type">Node</span> <span class="variable">node</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Node</span>(Thread.currentThread(), mode);</span><br><span class="line">    <span class="comment">// Try the fast path of enq; backup to full enq on failure</span></span><br><span class="line">    <span class="type">Node</span> <span class="variable">pred</span> <span class="operator">=</span> tail;</span><br><span class="line">    <span class="keyword">if</span> (pred != <span class="literal">null</span>) &#123;</span><br><span class="line">        node.prev = pred;</span><br><span class="line">        <span class="keyword">if</span> (compareAndSetTail(pred, node)) &#123;</span><br><span class="line">            pred.next = node;</span><br><span class="line">            <span class="keyword">return</span> node;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    enq(node);</span><br><span class="line">    <span class="keyword">return</span> node;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先判断队列是否为空，不为空时则将封装好的<code>Node</code>利用<code>CAS</code>写入队尾，如果出现并发写入失败就需要调用<code>enq(node)</code>来写入。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Node <span class="title function_">enq</span><span class="params">(<span class="keyword">final</span> Node node)</span> &#123;</span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        <span class="type">Node</span> <span class="variable">t</span> <span class="operator">=</span> tail;</span><br><span class="line">        <span class="keyword">if</span> (t == <span class="literal">null</span>) &#123; <span class="comment">// Must initialize</span></span><br><span class="line">            <span class="keyword">if</span> (compareAndSetHead(<span class="keyword">new</span> <span class="title class_">Node</span>()))</span><br><span class="line">                tail = head;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            node.prev = t;</span><br><span class="line">            <span class="keyword">if</span> (compareAndSetTail(t, node)) &#123;</span><br><span class="line">                t.next = node;</span><br><span class="line">                <span class="keyword">return</span> t;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个处理方式就相当于<code>CAS</code>加上自旋操作（循环等待）保证一定能写入队列。</p>
+<p><strong>3、挂起等待线程</strong></p>
+<p>写入队列之后，调用<code>acquireQueued(addWaiter(Node.EXCLUSIVE), arg)</code>将当前线程挂起。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="type">boolean</span> <span class="title function_">acquireQueued</span><span class="params">(<span class="keyword">final</span> Node node, <span class="type">int</span> arg)</span> &#123;</span><br><span class="line">    <span class="type">boolean</span> <span class="variable">failed</span> <span class="operator">=</span> <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="type">boolean</span> <span class="variable">interrupted</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">        <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">            <span class="keyword">final</span> <span class="type">Node</span> <span class="variable">p</span> <span class="operator">=</span> node.predecessor();</span><br><span class="line">            <span class="keyword">if</span> (p == head &amp;&amp; tryAcquire(arg)) &#123;</span><br><span class="line">                setHead(node);</span><br><span class="line">                p.next = <span class="literal">null</span>; <span class="comment">// GC</span></span><br><span class="line">                failed = <span class="literal">false</span>;</span><br><span class="line">                <span class="keyword">return</span> interrupted;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (shouldParkAfterFailedAcquire(p, node) &amp;&amp;</span><br><span class="line">                parkAndCheckInterrupt())</span><br><span class="line">                interrupted = <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (failed)</span><br><span class="line">            cancelAcquire(node);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先会根据<code>node.predecessor()</code>获取到上一个节点是否为头节点，如果是则再尝试获取一次锁。如果不是头节点，则会根据上一个节点的<code>waitStatus</code>状态来处理<code>shouldParkAfterFailedAcquire(p, node)</code>。</p>
+<ul>
+<li><h4 id="非公平锁"><a href="#非公平锁" class="headerlink" title="非公平锁"></a>非公平锁</h4></li>
+</ul>
+<p>公平锁与非公平锁的差异主要在获取锁上。公平锁会让线程依次排队获取锁，而非公平锁则没有这些规则，属于抢占模式，每来一个线程，都会直接先尝试获取锁。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">NonfairSync</span> <span class="keyword">extends</span> <span class="title class_">Sync</span> &#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">void</span> <span class="title function_">lock</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// 和公平锁相比，这里会直接先进行一次CAS，成功就返回了</span></span><br><span class="line">        <span class="keyword">if</span> (compareAndSetState(<span class="number">0</span>, <span class="number">1</span>))</span><br><span class="line">            setExclusiveOwnerThread(Thread.currentThread());</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            acquire(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// AbstractQueuedSynchronizer.acquire(int arg)</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title function_">acquire</span><span class="params">(<span class="type">int</span> arg)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (!tryAcquire(arg) &amp;&amp;</span><br><span class="line">            acquireQueued(addWaiter(Node.EXCLUSIVE), arg))</span><br><span class="line">            selfInterrupt();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">final</span> <span class="type">boolean</span> <span class="title function_">tryAcquire</span><span class="params">(<span class="type">int</span> acquires)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> nonfairTryAcquire(acquires);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Performs non-fair tryLock.  tryAcquire is implemented in</span></span><br><span class="line"><span class="comment"> * subclasses, but both need nonfair try for trylock method.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">final</span> <span class="type">boolean</span> <span class="title function_">nonfairTryAcquire</span><span class="params">(<span class="type">int</span> acquires)</span> &#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="type">Thread</span> <span class="variable">current</span> <span class="operator">=</span> Thread.currentThread();</span><br><span class="line">    <span class="type">int</span> <span class="variable">c</span> <span class="operator">=</span> getState();</span><br><span class="line">    <span class="keyword">if</span> (c == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">// 这里也是直接CAS，没有判断前面是否还有节点。</span></span><br><span class="line">        <span class="keyword">if</span> (compareAndSetState(<span class="number">0</span>, acquires)) &#123;</span><br><span class="line">            setExclusiveOwnerThread(current);</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (current == getExclusiveOwnerThread()) &#123;</span><br><span class="line">        <span class="type">int</span> <span class="variable">nextc</span> <span class="operator">=</span> c + acquires;</span><br><span class="line">        <span class="keyword">if</span> (nextc &lt; <span class="number">0</span>) <span class="comment">// overflow</span></span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">Error</span>(<span class="string">&quot;Maximum lock count exceeded&quot;</span>);</span><br><span class="line">        setState(nextc);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>非公平锁的实现在刚进入<code>lock</code>方法时会直接使用一次<code>CAS</code>去尝试获取锁，不成功才会到<code>acquire</code>方法中，当进入到非公平锁的<code>nonfairTryAcquire</code>方法中也并没有判断是否有前驱节点在等待锁，直接<code>CAS</code>尝试获取锁。由此实现了非公平锁。</p>
+<ul>
+<li><h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a><strong>小结</strong></h4></li>
+</ul>
+<p>非公平锁和公平锁的不同处：</p>
+<p>1、非公平锁在调用<code>lock</code>后，首先就会调用<code>CAS</code>进行一次抢锁，如果这个时候恰巧锁没有被占用，那么直接就获取到锁返回了。</p>
+<p>2、非公平锁在<code>CAS</code>失败后，和公平锁一样都会进入到<code>tryAcquire</code>方法，在<code>tryAcquire</code>方法中，如果发现锁这个时候被释放了（<code>state == 0</code>），非公平锁会直接<code>CAS</code>抢锁，但是公平锁会判断等待队列是否有线程处于等待状态，如果有则不去抢锁，排到队列后面。</p>
+<p>公平锁和非公平锁就这两点区别，如果这两次<code>CAS</code>都不成功，那么后面非公平锁和公平锁是一样的，都要进入到阻塞队列等待唤醒。</p>
+<p>相对来说，非公平锁会有更好的性能，但可能导致阻塞队列中的等待线程长期处于饥饿状态。</p>
+<h2 id="锁释放"><a href="#锁释放" class="headerlink" title="锁释放"></a>锁释放</h2><p>公平锁和非公平锁的释放流程都是一样的：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">unlock</span><span class="params">()</span> &#123;</span><br><span class="line">    sync.release(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="type">boolean</span> <span class="title function_">release</span><span class="params">(<span class="type">int</span> arg)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (tryRelease(arg)) &#123;</span><br><span class="line">        <span class="type">Node</span> <span class="variable">h</span> <span class="operator">=</span> head;</span><br><span class="line">        <span class="keyword">if</span> (h != <span class="literal">null</span> &amp;&amp; h.waitStatus != <span class="number">0</span>)</span><br><span class="line">               <span class="comment">// 唤醒被挂起的线程</span></span><br><span class="line">            unparkSuccessor(h);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 尝试释放锁</span></span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="type">boolean</span> <span class="title function_">tryRelease</span><span class="params">(<span class="type">int</span> releases)</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">c</span> <span class="operator">=</span> getState() - releases;</span><br><span class="line">    <span class="keyword">if</span> (Thread.currentThread() != getExclusiveOwnerThread())</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalMonitorStateException</span>();</span><br><span class="line">    <span class="type">boolean</span> <span class="variable">free</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">    <span class="keyword">if</span> (c == <span class="number">0</span>) &#123;</span><br><span class="line">        free = <span class="literal">true</span>;</span><br><span class="line">        setExclusiveOwnerThread(<span class="literal">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    setState(c);</span><br><span class="line">    <span class="keyword">return</span> free;</span><br><span class="line">&#125;        </span><br></pre></td></tr></table></figure>
+
+<p>首先会判断当前线程是否为获得锁的线程，由于是重入锁所以需要将<code>state</code>减到 0 才认为完全释放锁。释放之后需要调用<code>unparkSuccessor(h)</code>来唤醒被挂起的线程。</p>
+<h2 id="线程同步（与Condition）"><a href="#线程同步（与Condition）" class="headerlink" title="线程同步（与Condition）"></a>线程同步（与Condition）</h2><p>在使用<code>synchronized</code>锁时，我们可以使用<code>notify()</code>和<code>wait()</code>方法实现线程同步。但是当使用<code>ReentrantLock</code>锁时，线程同步操作需要借助<code>Condition</code>来实现。<code>Condition</code>必须和<code>Lock</code>配合使用，其提供的<code>await()</code>方法和<code>signal()</code>方法，作用类似于<code>Object</code>对象的<code>wait()</code>和<code>notify()</code>方法，用来实现线程间的通信。</p>
+<p><code>Condition</code>的作用是对锁进行更加精确的控制，<code>Condition</code>中的<code>await() / signal() / signalAll()</code>和 Object 中的<code>wait() / notify() / notifyAll()</code>方法相似，不同的是<code>Object</code>中的三个方法是基于<code>synchronized</code>关键字，而<code>Condition</code>中的三个方法则需要和<code>Lock</code>配合使用。针对一个<code>Lock</code>对象可以有多个<code>Condition</code>对象，这使得<code>Condition</code>对象更加灵活。</p>
+<p>一个经典的生产者 - 消费者模型例子，代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Repository</span> &#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * 仓库的容量</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> capacity;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * 仓库的实际量</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> size;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * 独占锁</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> Lock lock;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * 仓库满时的条件</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> Condition fullCondition;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * 仓库空时的条件</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> Condition emptyCondition;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">Repository</span><span class="params">(<span class="type">int</span> capacity)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.capacity = capacity;</span><br><span class="line">        <span class="built_in">this</span>.size = <span class="number">0</span>;</span><br><span class="line">        lock = <span class="keyword">new</span> <span class="title class_">ReentrantLock</span>();</span><br><span class="line">        fullCondition = lock.newCondition();</span><br><span class="line">        emptyCondition = lock.newCondition();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">class</span> <span class="title class_">Producer</span> <span class="keyword">implements</span> <span class="title class_">Runnable</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@SneakyThrows</span></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line"></span><br><span class="line">                <span class="comment">//上锁</span></span><br><span class="line">                lock.lock();</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// 随机生成1~10个</span></span><br><span class="line">                    <span class="type">int</span> <span class="variable">num</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Random</span>().nextInt(<span class="number">10</span>) + <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">if</span> (size &gt;= capacity) &#123;</span><br><span class="line">                        System.out.println(<span class="string">&quot;repository fulled!&quot;</span>);</span><br><span class="line"></span><br><span class="line">                        <span class="comment">// 仓库满了，相当于wait()操作，只有当fullCondition.signalAll()才能继续执行</span></span><br><span class="line">                        fullCondition.await();</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    <span class="comment">/*</span></span><br><span class="line"><span class="comment">                     * 获取实际的生产量</span></span><br><span class="line"><span class="comment">                     */</span></span><br><span class="line">                    <span class="type">int</span> <span class="variable">actNum</span> <span class="operator">=</span> (size + num) &gt; capacity ? capacity - size : num;</span><br><span class="line">                    size += actNum;</span><br><span class="line"></span><br><span class="line">                    System.out.println(<span class="string">&quot;produced: +&quot;</span> + actNum + <span class="string">&quot;, the size is:&quot;</span> + size);</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// 通知消费者来消费，相当于notifyAll()操作</span></span><br><span class="line">                    emptyCondition.signalAll();</span><br><span class="line"></span><br><span class="line">                &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                    e.printStackTrace();</span><br><span class="line">                &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                    <span class="comment">//释放锁一般放在finally中</span></span><br><span class="line">                    lock.unlock();</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//                Thread.sleep(1000);</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">class</span> <span class="title class_">Consumer</span> <span class="keyword">implements</span> <span class="title class_">Runnable</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@SneakyThrows</span></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line"></span><br><span class="line">                <span class="comment">//上锁</span></span><br><span class="line">                lock.lock();</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// 随机生成1~10个</span></span><br><span class="line">                    <span class="type">int</span> <span class="variable">num</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Random</span>().nextInt(<span class="number">10</span>) + <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">if</span> (size &lt; <span class="number">1</span>) &#123;</span><br><span class="line">                        System.out.println(<span class="string">&quot;repository emptied!&quot;</span>);</span><br><span class="line"></span><br><span class="line">                        <span class="comment">// 仓库空了，相当于wait()操作，emptyCondition.signalAll()才能继续执行</span></span><br><span class="line">                        emptyCondition.await();</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    <span class="comment">/*</span></span><br><span class="line"><span class="comment">                     * 获取实际的消费量</span></span><br><span class="line"><span class="comment">                     */</span></span><br><span class="line">                    <span class="type">int</span> <span class="variable">actNum</span> <span class="operator">=</span> (size &lt; num) ? size : num;</span><br><span class="line">                    size -= actNum;</span><br><span class="line"></span><br><span class="line">                    System.out.println(<span class="string">&quot;consumed: -&quot;</span> + actNum + <span class="string">&quot;, the size is:&quot;</span> + size);</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// 通知生产者生产，相当于notifyAll()操作</span></span><br><span class="line">                    fullCondition.signalAll();</span><br><span class="line"></span><br><span class="line">                &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                    e.printStackTrace();</span><br><span class="line">                &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                    <span class="comment">//释放锁一般放在finally中</span></span><br><span class="line">                    lock.unlock();</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//                Thread.sleep(1000);</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span>&#123;</span><br><span class="line">        <span class="type">Repository</span> <span class="variable">repository</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Repository</span>(<span class="number">10</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">Thread</span>(repository.<span class="keyword">new</span> <span class="title class_">Producer</span>()).start();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">Thread</span>(repository.<span class="keyword">new</span> <span class="title class_">Consumer</span>()).start();</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上代码，首先定义了一个仓库类<code>repository</code>，类中定义了一个锁对象<code>lock</code>，为生产和消费操作上锁，相当于<code>synchronized</code>的作用。然后，由一个锁对象创建出两个条件对象：<code>fullCondition</code>（仓库满）和<code>emptyCondition</code>（仓库空）。</p>
+<p>当生产者生产数据时，调用<code>lock.lock()</code>为生产操作上锁，当仓库满了时，执行<code>fullCondition.await()</code>，相当于<code>wait()</code>作用，只有执行<code>fullCondition.signalAll()</code>才能让当前生产线程继续执行。当生产数量没有达到仓库最大容量时，会调用<code>emptyCondition.signalAll()</code>通知消费者消费数据。</p>
+<p>当消费者消费数据时，同样调用<code>lock.lock()</code>为消费操作上锁，当仓库为空时，会执行<code>emptyCondition.await()</code>，让消费者线程阻塞，只有生产线程调用<code>emptyCondition.signalAll()</code>才能让当前线程继续执行。当消费，会调用<code>fullCondition.signalAll()</code>通知生产者产生数据；</p>
+<p>最后，当线程的任务执行完毕后，需要调用<code>lock.unlock()</code>释放对象锁。</p>
+<p>代码运行结果如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">produced: +6, the size is:6</span><br><span class="line">produced: +4, the size is:10</span><br><span class="line">repository fulled!</span><br><span class="line">consumed: -6, the size is:4</span><br><span class="line">consumed: -4, the size is:0</span><br><span class="line">repository emptied!</span><br><span class="line">produced: +7, the size is:7</span><br><span class="line">produced: +3, the size is:10</span><br><span class="line">repository fulled!</span><br><span class="line">consumed: -3, the size is:7</span><br><span class="line">consumed: -6, the size is:1</span><br><span class="line">consumed: -1, the size is:0</span><br><span class="line">repository emptied!</span><br><span class="line">produced: +9, the size is:9</span><br><span class="line">produced: +1, the size is:10</span><br><span class="line">repository fulled!</span><br><span class="line">consumed: -6, the size is:4</span><br><span class="line">consumed: -2, the size is:2</span><br><span class="line">consumed: -2, the size is:0</span><br><span class="line">repository emptied!</span><br><span class="line">produced: +3, the size is:3</span><br><span class="line">produced: +6, the size is:9</span><br><span class="line">produced: +1, the size is:10</span><br><span class="line">repository fulled!</span><br><span class="line">consumed: -6, the size is:4</span><br><span class="line">consumed: -4, the size is:0</span><br><span class="line">repository emptied!</span><br><span class="line">produced: +7, the size is:7</span><br><span class="line">produced: +3, the size is:10</span><br><span class="line">repository fulled!</span><br><span class="line">consumed: -7, the size is:3</span><br><span class="line">consumed: -3, the size is:0</span><br><span class="line">repository emptied!</span><br><span class="line">produced: +1, the size is:1</span><br><span class="line">produced: +8, the size is:9</span><br><span class="line">produced: +1, the size is:10</span><br></pre></td></tr></table></figure>
+
+
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2018/07/16/concurrency/ThreadLocal%E6%9C%AC%E5%9C%B0%E5%B1%80%E9%83%A8%E5%8F%98%E9%87%8F/" title="ThreadLocal 本地局部变量"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2018/07/03/collections/LinkedHashMap/" title="LinkedHashMap"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

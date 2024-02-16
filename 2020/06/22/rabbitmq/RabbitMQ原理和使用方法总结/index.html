@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>RabbitMQ原理和使用方法总结 | Hexo</title>
+  <meta name="description" content="RabbitMQ原理和使用方法总结简介消息队列消息队列，即MQ(全称Message Queue)。消息队列是在消息的传输过程中保存消息的容器。它是典型的生产者—消费者模型。生产者不断向消息队列中生产消息，消费者不断的从队列中获取消息。消息队列提供一个异步通信机制，消息的发送者不必一直等到消息被成功处理才返回，而是可以立即返回。 消息中间件负责处理网络通信，如果网络连接不可用，消息被暂存于队列当中，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RabbitMQ原理和使用方法总结">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2020/06/22/rabbitmq/RabbitMQ%E5%8E%9F%E7%90%86%E5%92%8C%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="RabbitMQ原理和使用方法总结简介消息队列消息队列，即MQ(全称Message Queue)。消息队列是在消息的传输过程中保存消息的容器。它是典型的生产者—消费者模型。生产者不断向消息队列中生产消息，消费者不断的从队列中获取消息。消息队列提供一个异步通信机制，消息的发送者不必一直等到消息被成功处理才返回，而是可以立即返回。 消息中间件负责处理网络通信，如果网络连接不可用，消息被暂存于队列当中，">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/04/06/yDa9gtF84CQrKvf.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/06/MmgbRoVap6NSD5l.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/06/lZOsSjYbryRDaFT.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/06/w6RT5EAVlFPk2sd.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/06/SspzkRPcOMbyQ29.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/06/H2m5UJhBj1eNAfO.png">
+<meta property="og:image" content="https://img2018.cnblogs.com/blog/1649754/201909/1649754-20190911094028149-1396092124.png">
+<meta property="article:published_time" content="2020-06-22T05:49:03.000Z">
+<meta property="article:modified_time" content="2024-02-14T11:22:12.454Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="rabbitmq">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/04/06/yDa9gtF84CQrKvf.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2020/06/22/rabbitmq/RabbitMQ%E5%8E%9F%E7%90%86%E5%92%8C%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95%E6%80%BB%E7%BB%93/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-rabbitmq/RabbitMQ原理和使用方法总结" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      RabbitMQ原理和使用方法总结
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2020/06/22/rabbitmq/RabbitMQ%E5%8E%9F%E7%90%86%E5%92%8C%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95%E6%80%BB%E7%BB%93/" class="article-date">
+	  <time datetime="2020-06-22T05:49:03.000Z" itemprop="datePublished">2020-06-22</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/rabbitmq/" rel="tag">rabbitmq</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2020/06/22/rabbitmq/RabbitMQ%E5%8E%9F%E7%90%86%E5%92%8C%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95%E6%80%BB%E7%BB%93/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="RabbitMQ原理和使用方法总结"><a href="#RabbitMQ原理和使用方法总结" class="headerlink" title="RabbitMQ原理和使用方法总结"></a>RabbitMQ原理和使用方法总结</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><h3 id="消息队列"><a href="#消息队列" class="headerlink" title="消息队列"></a>消息队列</h3><p>消息队列，即<code>MQ</code>(全称<code>Message Queue</code>)。消息队列是在消息的传输过程中保存消息的容器。它是典型的生产者—消费者模型。生产者不断向消息队列中生产消息，消费者不断的从队列中获取消息。消息队列提供一个异步通信机制，消息的发送者不必一直等到消息被成功处理才返回，而是可以立即返回。</p>
+<p>消息中间件负责处理网络通信，如果网络连接不可用，消息被暂存于队列当中，当网络畅通的时候在将消息转发给订阅了队列的应用程序或服务处理。</p>
+<p>消息的生产和消费都是异步的，消息队列只关心消息的发送和接收，没有业务逻辑的侵入，实现了生产者和消费者的解耦。</p>
+<p>以电商系统为例，比如在用户下单时，订单服务需要调用库存服务进行商品扣库存操作。按照传统方式，下单要等到库存服务成功返回之后才能显示下单成功，如果这时网络出现故障导致库存服务一直没有返回，那用户将一直处于等待中，使得用户体验变得很差。在这种情况下，就可以在订单服务和库存服务之间使用消息队列进行解耦。订单服务将扣库存消息发送到消息队列中后直接返回，库存服务会自动去消息队列中获取消息处理，用户无需等待。这样既提高了并发量，又降低了服务之间的耦合度。</p>
+<h3 id="JMS和AMQP"><a href="#JMS和AMQP" class="headerlink" title="JMS和AMQP"></a>JMS和AMQP</h3><p><code>JMS</code>（<code>Java MessageService</code>）是指<code>JMS API</code>。<code>JMS</code>是由Sun公司早期提出的消息标准，旨在为<code>Java</code>应用提供统一的消息操作，包括<code>create</code>、<code>send</code>、<code>receive</code>等。JMS已经成为<code>Java Enterprise Edition</code>的一部分。用户可以根据相应的接口实现<code>JMS</code>服务进行通信和相关操作。</p>
+<p><code>AMQP</code>（<code>Advanced Message Queue Protocol</code>）是一种协议，最早用于解决金融领域不同平台之间的消息传递交互问题。<code>AMQP</code>和<code>JMS</code>有本质的差别，<code>AMQP</code>不从<code>API</code>层进行限定，而是直接定义网络交换的数据格式。这使得实现了<code>AMQP</code>的消息发送者和消费者可以使用不同语言实现，只要采用相应的数据格式即可。</p>
+<p>两者的区别如下：</p>
+<ul>
+<li><p><code>JMS</code>定义了统一的接口，统一对消息的处理，而<code>AMQP</code>是通过规定协议来统一数据交互格式；</p>
+</li>
+<li><p><code>JMS</code>限定了必须使用<code>Java</code>语言；而<code>AMQP</code>只是协议，不规定实现方式，因此是跨语言的；</p>
+</li>
+<li><p><code>JMS</code>规定了两种消息模型，而<code>AMQP</code>的消息模型更加丰富。</p>
+</li>
+</ul>
+<p>常见的<code>MQ</code>产品如下：</p>
+<ul>
+<li><p><code>ActiveMQ</code>：基于<code>JMS</code>规范实现，采用<code>Java</code>语言开发，是<code>Apache</code>下面的项目；</p>
+</li>
+<li><p><code>RabbitMQ</code>：基于<code>AMQP</code>协议实现，采用<code>Erlang</code>语言开发，稳定性好；</p>
+</li>
+<li><p><code>RocketMQ</code>：基于<code>JMS</code>规范实现，采用<code>Java</code>语言开发，阿里产品，目前交由<code>Apache</code>基金会；</p>
+</li>
+<li><p><code>Kafka</code>：由<code>Apache</code>软件基金会开发的开源流处理平台，采用<code>Scala</code>和<code>Java</code>开发，主要用于处理日志；</p>
+</li>
+</ul>
+<h3 id="RabbitMQ"><a href="#RabbitMQ" class="headerlink" title="RabbitMQ"></a>RabbitMQ</h3><p><code>RabbitMQ</code>是一个开源的消息队列服务器。<code>RabbitMQ</code>基于<code>AMQP</code>协议实现，采用<code>Erlang</code>语言开发。<code>Erlang</code>语言在数据交互方面性能非常优秀，<code>RabbitMQ</code>具有很高的性能。<code>RabbitMQ</code>官方地址：<a target="_blank" rel="noopener" href="http://www.rabbitmq.com/">http://www.rabbitmq.com</a></p>
+<h2 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h2><ul>
+<li>异步处理，发送者把消息放入消息队列中可以直接返回，无需等到处理完成才返回。</li>
+<li>应用解耦，消息发送者和消费者之间不必受对方的影响，只通过一个简单的容器来联系，可以更独立自主。</li>
+<li>流量削峰，当请求量剧增时，发送者可以发请求发送到消息队列，当消息队列满了就拒绝响应，跳转到错误页面，这样就可以避免系统崩溃。</li>
+<li>日志处理，将消息队列用在日志处理中，比如<code>Kafka</code>的应用，解决大量日志传输的问题。</li>
+</ul>
+<h2 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h2><h3 id="基本结构"><a href="#基本结构" class="headerlink" title="基本结构"></a>基本结构</h3><p><code>RabbitMQ</code>的基本结构如下图：</p>
+<p><img src="https://i.loli.net/2021/04/06/yDa9gtF84CQrKvf.png" alt="2.png"></p>
+<ul>
+<li><p><code>Broker</code>：消息队列服务进程，包括两个部分：<code>Exchange</code>和<code>Queue</code>。</p>
+</li>
+<li><p><code>Exchange</code>：消息队列交换机，按一定的规则将消息路由转发到队列中，对消息进行过滤。</p>
+</li>
+<li><p><code>Queue</code>：消息队列，存储消息的队列，消息到达队列并转发给指定的消费者。多个消费者可以订阅同一个<code>Queue</code>，<code>Queue</code>中的消息会被平均分摊给多个消费者进行处理，而不是每个消费者都收到所有的消息并处理。</p>
+</li>
+<li><p><code>Virtual Host</code>：虚拟主机，用于逻辑隔离。一个虚拟主机里面可以有若干个<code>Exchange</code>和<code>Queue</code>，同一个虚拟主机里面不能有相同名称的<code>Exchange</code>或<code>Queue</code>。</p>
+</li>
+<li><p><code>Connection</code>：连接，应用程序与<code>Broker</code>的网络连接，<code>TCP</code>连接。</p>
+</li>
+<li><p><code>Channel</code>：信道，消息读写等操作在信道中进行。客户端可以建立多个信道，每个信道代表一个会话任务。</p>
+</li>
+<li><p><code>Message</code>：消息，应用程序和服务器之间传送的数据，消息可以非常简单，也可以很复杂。</p>
+</li>
+<li><p><code>Binding</code>：绑定，交换器和消息队列之间的虚拟连接，绑定中可以包含一个或者多个<code>RoutingKey</code>。</p>
+</li>
+<li><p><code>RoutingKey</code>：路由键，生产者将消息发送给交换器的时候，会发送一个<code>RoutingKey</code>，用来指定路由规则，这样交换器就知道把消息发送到哪个队列。路由键通常为一个“.”分割的字符串，例如“<code>com.rabbitmq</code>”。</p>
+</li>
+<li><p><code>Producer</code>：消息生产者，即生产方客户端，生产方客户端将消息发送。</p>
+</li>
+<li><p><code>Consumer</code>：消息消费者，即消费方客户端，接收<code>MQ</code>转发的消息。</p>
+</li>
+</ul>
+<h3 id="工作流程"><a href="#工作流程" class="headerlink" title="工作流程"></a>工作流程</h3><p>生产者发送消息流程：</p>
+<p>1）生产者和<code>Broker</code>建立<code>TCP</code>连接</p>
+<p>2）生产者和<code>Broker</code>建立通道</p>
+<p>3）生产者通过通道消息发送给<code>Broker</code>，由<code>Exchange</code>将消息进行转发</p>
+<p>4）<code>Exchange</code>将消息转发到指定的<code>Queue</code></p>
+<p>消费者接收消息流程：</p>
+<p>1）消费者和<code>Broker</code>建立<code>TCP</code>连接</p>
+<p>2）消费者和<code>Broker</code>建立通道</p>
+<p>3）消费者监听指定的<code>Queue</code></p>
+<p>4）当有消息到达<code>Queue</code>时<code>Broker</code>默认将消息推送给消费者</p>
+<p>5）消费者接收到消息</p>
+<p>6）<code>ack</code>回复</p>
+<h3 id="PrefetchCount"><a href="#PrefetchCount" class="headerlink" title="PrefetchCount"></a>PrefetchCount</h3><p>当有多个消费者订阅同一个<code>Queue</code>时，<code>Queue</code>中的消息会被平摊给多个消费者处理。这时如果每个消费者处理消息的时间不同，就有可能导致某些消费者一直在处理，而另一些消费者很快就处理完手头工作并一直空闲的情况。遇到这种情况，可以通过设置<code>prefetchCount</code>来限制<code>Queue</code>每次发送给每个消费者的消息数，比如设置<code>prefetchCount=1</code>，则<code>Queue</code>每次给每个消费者发送一条消息，等消费者处理完这条消息后，<code>Queue</code>会再给该消费者发送一条消息。这样，处理速度快的消费者接受消息的频率就会快些，而处理速度慢的消费者接受消息的频率就会慢些，很好地均衡了多个消费者的工作量。</p>
+<h2 id="Exchange类型"><a href="#Exchange类型" class="headerlink" title="Exchange类型"></a>Exchange类型</h2><p><code>RabbitMQ</code>常用的<code>Exchange Type</code>有：<code>direct</code>、<code>topic</code>、<code>fanout</code>、<code>headers</code>四种（<code>AMQP</code>规范里还提到两种<code>Exchange Type</code>，分别为<code>system</code>与自定义），下面分别进行介绍。</p>
+<h3 id="Direct"><a href="#Direct" class="headerlink" title="Direct"></a>Direct</h3><p><code>Direct</code>类型的<code>Exchange</code>路由规则很简单，它会把消息路由到<code>Routing Key</code>指定的队列中，也就是说<code>Routing Key</code>与<code>Binding Key</code>完全匹配的<code>Queue</code>中。</p>
+<p><img src="https://i.loli.net/2021/04/06/MmgbRoVap6NSD5l.png" alt="3.png"></p>
+<p>如上图所示，如果用<code>routingKey=”orange”</code>发送消息到<code>Exchange</code>，则消息会路由到<code>Queue1</code>（<code>amqp.gen-S9b…</code>，这是由<code>RabbitMQ</code>自动生成的<code>Queue</code>名称），如果用<code>routingKey=”black”</code>或<code>routingKey=”green”</code>来发送消息，则消息会路由到<code>Queue2</code>。如果我们以其他<code>routingKey</code>发送消息，则消息不会路由到这两个<code>Queue</code>中。</p>
+<h3 id="Topic"><a href="#Topic" class="headerlink" title="Topic"></a>Topic</h3><p><code>Direct</code>类型的<code>Exchange</code>路由规则是完全匹配<code>binding key</code>与<code>routing key</code>，这种严格的匹配方式在很多情况下不能满足实际业务需求。<code>topic</code>类型的<code>Exchange</code>在匹配规则上进行了扩展，它与<code>direct</code>类型的<code>Exchange</code>相似，也是将消息路由到<code>binding key</code>与<code>routing key</code>相匹配的<code>Queue</code>中，但这里的匹配规则有些不同，它约定：</p>
+<ul>
+<li><code>routing key</code>为一个句点号“. ”分隔的字符串（将被句点号“. ”分隔开的每一段独立的字符串称为一个单词），如“<code>com.rabbitmq</code>”、“<code>orange.abc</code>”、“<code>123.xyz.abc</code>”</li>
+<li><code>binding key</code>与<code>routing key</code>一样也是句点号“. ”分隔的字符串</li>
+<li><code>binding key</code>中可以存在两种特殊字符“*”与“#”，用于做模糊匹配，其中“*”用于匹配一个单词，“#”用于匹配多个单词（可以是零个）</li>
+</ul>
+<p><img src="https://i.loli.net/2021/04/06/lZOsSjYbryRDaFT.png" alt="4.png"></p>
+<p>如上图所示：</p>
+<ul>
+<li><p><code>routingKey</code>&#x3D;”<code>abc.orange.rabbit</code>”的消息会同时路由到Q1与Q2</p>
+</li>
+<li><p><code>routingKey</code>&#x3D;”<code>lazy.orange.abc</code>”的消息也会同时路由到Q1和Q2</p>
+</li>
+<li><p><code>routingKey</code>&#x3D;”<code>lazy.xyz.abc</code>”的消息只会路由到Q2</p>
+</li>
+<li><p><code>routingKey</code>&#x3D;”<code>lazy.xyz.rabbit</code>”的消息只会路由到Q2，但注意只会投递给Q2一次，虽然这个<code>routingKey</code>与Q2的两个<code>bindingKey</code>都匹配。</p>
+</li>
+<li><p><code>routingKey</code>&#x3D;”<code>quick.xyz.abc</code>”、<code>routingKey</code>&#x3D;”orange”、<code>routingKey</code>&#x3D;”<code>abc.orange.xyz.rabbit</code>”的消息将会被丢弃，因为它们没有匹配任何<code>bindingKey</code></p>
+</li>
+</ul>
+<h3 id="Fanout"><a href="#Fanout" class="headerlink" title="Fanout"></a>Fanout</h3><p><code>Fanout</code>类型的<code>Exchange</code>路由规则非常简单，它会把所有发送到该<code>Exchange</code>的消息路由到所有与它绑定的<code>Queue</code>中。</p>
+<p><img src="https://i.loli.net/2021/04/06/w6RT5EAVlFPk2sd.png" alt="5.png"></p>
+<p>如上图所示，生产者（P）发送到<code>Exchange</code>（X）的所有消息都会路由到图中的两个<code>Queue</code>，并最终被C1与C2消费。</p>
+<h3 id="Headers"><a href="#Headers" class="headerlink" title="Headers"></a>Headers</h3><p><code>headers</code>类型的<code>Exchange</code>不依赖于<code>routing key</code>与<code>binding key</code>的匹配规则来路由消息，而是根据发送的消息内容中的<code>headers</code>属性进行匹配。</p>
+<p>该类型的<code>Exchange</code>在实际中很少使用，不做过多介绍。</p>
+<h2 id="部署使用"><a href="#部署使用" class="headerlink" title="部署使用"></a>部署使用</h2><h3 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h3><p>略，详见devops—docker部分</p>
+<h3 id="Springboot集成RabbitMQ"><a href="#Springboot集成RabbitMQ" class="headerlink" title="Springboot集成RabbitMQ"></a>Springboot集成RabbitMQ</h3><p>添加配置：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">application:</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">land-service-producer</span></span><br><span class="line">  <span class="comment">#配置rabbitMq服务器</span></span><br><span class="line">  <span class="attr">rabbitmq:</span></span><br><span class="line">    <span class="attr">host:</span> <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">5672</span></span><br><span class="line">    <span class="attr">username:</span> <span class="string">admin</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">admin</span></span><br></pre></td></tr></table></figure>
+
+<p>添加一个配置类，创建一个<code>exchange</code>和两个<code>queue</code>，并且让<code>exchange</code>和两个<code>queue</code>分别绑定起来，代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RabbitMqConfig</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="type">String</span> <span class="variable">QUEUE_NAME_1</span> <span class="operator">=</span> <span class="string">&quot;land_queue1&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="type">String</span> <span class="variable">QUEUE_NAME_2</span> <span class="operator">=</span> <span class="string">&quot;land_queue2&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="type">String</span> <span class="variable">EXCHANGE_NAME</span> <span class="operator">=</span> <span class="string">&quot;land_exchange&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="keyword">public</span> Queue <span class="title function_">queue1</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// 创建一个queue 1</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">Queue</span>(RabbitMqConfig.QUEUE_NAME_1);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="keyword">public</span> Queue <span class="title function_">queue2</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// 创建一个queue 2</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">Queue</span>(RabbitMqConfig.QUEUE_NAME_2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    TopicExchange <span class="title function_">exchange</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// 创建一个topic exchange</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">TopicExchange</span>(EXCHANGE_NAME);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    Binding <span class="title function_">bindingExchangeMessage</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// exchange和queue1绑定，并指定binding key</span></span><br><span class="line">        <span class="keyword">return</span> BindingBuilder.bind(queue1()).to(exchange()).with(<span class="string">&quot;topic.com.alan6.#&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    Binding <span class="title function_">bindingExchangeMessages</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// exchange和queue2绑定，并指定binding key</span></span><br><span class="line">        <span class="keyword">return</span> BindingBuilder.bind(queue2()).to(exchange()).with(<span class="string">&quot;topic.message.*&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>发送者代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RunWith(SpringRunner.class)</span></span><br><span class="line"><span class="meta">@SpringBootTest(classes = ProducerApplication.class)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RabbitMQTest</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> AmqpTemplate rabbitTemplate;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">sendMessageTest</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="comment">// 测试消息</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">msg</span> <span class="operator">=</span> <span class="string">&quot;this is a test&quot;</span>;</span><br><span class="line">		<span class="comment">// 路由key</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">routingKey</span> <span class="operator">=</span> <span class="string">&quot;topic.com.alan6.www&quot;</span>;</span><br><span class="line">		<span class="comment">// 发送消息</span></span><br><span class="line">        <span class="built_in">this</span>.rabbitTemplate.convertAndSend(RabbitMqConfig.EXCHANGE_NAME, routingKey, msg);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>消费者代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="meta">@RabbitListener(queues = &quot;land_queue1&quot;)</span>  <span class="comment">//注解，消费land_queue1的消息</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Consume</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RabbitHandler</span> <span class="comment">// 消费处理注解</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">consumer</span><span class="params">(String msg)</span>&#123;  <span class="comment">// 参数为需要处理的消息</span></span><br><span class="line">        System.out.println(<span class="string">&quot;consume msg：&quot;</span> + msg);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><p>运行<code>rabbitmq</code>，启动<code>producer</code>测试代码，向<code>rabbitmq</code>发送消息：</p>
+<p><img src="https://i.loli.net/2021/04/06/SspzkRPcOMbyQ29.png" alt="0.png"></p>
+<p>可以看见，<code>rabbitmq</code>已经接收到1个消息，正在等待消费，然后启动消费者应用：</p>
+<p><img src="https://i.loli.net/2021/04/06/H2m5UJhBj1eNAfO.png" alt="1.png"></p>
+<p><code>rabbitmq</code>中的消息已经被取走消费。</p>
+<h2 id="Tracing记录消息"><a href="#Tracing记录消息" class="headerlink" title="Tracing记录消息"></a>Tracing记录消息</h2><p><code>RabbitMQ</code>的<code>Tracing</code>能跟踪<code>RabbitMQ</code>中消息的流入流出情况。<code>rabbitmq_tracing</code>插件会对流入流出的消息做封装，然后将封装后的消息存入相应的<code>trace</code>文件之中。</p>
+<p>使用<code>rabbitmq-plugins enable rabbitmq_tracing</code>命令来启动<code>rabbitmq_tracing</code>插件。如果是使用<code>docker</code>部署的，先进入<code>docker</code>环境，再开启。</p>
+<p>在<code>rabbitmq</code>的GUI管理界面 “Admin” 选项右侧原本只有 ”Users”、”Virtual Hosts”和 ”Policies“ 三项，在添加<code>rabbitmq_tracing</code>插件之后，会多出”Tracing”选项。</p>
+<p>　<img src="https://img2018.cnblogs.com/blog/1649754/201909/1649754-20190911094028149-1396092124.png" alt="img"></p>
+<ul>
+<li><p><code>Name</code>：自定义日志名称，建议标准点容易区分。</p>
+</li>
+<li><p><code>Format</code>：表示输出的消息日志格式，有<code>Text</code>和<code>JSON</code>两种，<code>Text</code>格式的日志方便人类阅读，<code>JSON</code>的方便程序解析。<code>Text</code>相比<code>JSON</code>格式占用空间稍大点。</p>
+</li>
+<li><p><code>JSON</code>格式的<code>payload</code>（消息体）默认会采用<code>Base64</code>进行编码。</p>
+</li>
+<li><p><code>Max payload bytes</code>：表示每条消息的最大限制，单位为B。比如设置了了此值为10，那么当有超过10B的消息经过<code>RabbitMQ</code>时会被截断。如消息“trace test payload.”会被截断成“trace test”。</p>
+</li>
+<li><p><code>Pattern</code>：用来设置匹配模式，如“#” 匹配所有消息流入流出的情况，即当有客户端生产消息或消费消息的时候，都会把相应的消息日志记录下来。“<code>publish.#</code>” 匹配所有消息流入的情况；“<code>deliver.#</code>” 匹配所有消息流出的情况；“<code>publish.exchange.b2b.gms.ass</code>”只匹配发送者(<code>Exchanges</code>)为<code>exchange.b2b.gms.ass</code>的所有消息流入的情况。</p>
+</li>
+</ul>
+<h2 id="持久化"><a href="#持久化" class="headerlink" title="持久化"></a>持久化</h2><p><code>RabbitMQ</code>默认是不持久<code>Exchange</code>、<code>Queue</code>、<code>Binding</code>以及队列中消息的，这意味着一旦<code>RabbitMQ</code>重启，所有已声明的队列，<code>Exchange</code>，<code>Binding</code>以及队列中的消息都会丢失。为了防止丢失，需要实现持久化。但持久化会对<code>RabbitMQ</code>的性能造成很大的影响，可能会下降10倍不止。所以，为了提高<code>rabbitmq</code>的性能，没有必要持久化的可以不用设置为持久化。</p>
+<h3 id="Exchange-和-Queue-持久化"><a href="#Exchange-和-Queue-持久化" class="headerlink" title="Exchange 和 Queue 持久化"></a>Exchange 和 Queue 持久化</h3><p>把<code>Exchange</code>和<code>Queue</code>的<code>durable</code>属性置为<code>true</code>，可以实现<code>Queue</code>和<code>Exchange</code>的持久化。但这里需要注意的是，只有<code>Exchange</code>和<code>Queues</code>的<code>durable</code>都为<code>true</code>时才能绑定，否则在绑定时，<code>RabbitMQ</code>会报错的。</p>
+<h3 id="Message-持久化"><a href="#Message-持久化" class="headerlink" title="Message 持久化"></a>Message 持久化</h3><p>消息的持久化需要在消息投递的时候设置<code>delivery mode</code>值为2。消息持久化必须同时要求<code>exchange</code>和<code>queue</code>也是持久化的。<br>持久化的代价就是性能损失,磁盘IO远远慢于RAM(使用SSD会显著提高消息持久化的性能) , 持久化会大大降低<code>RabbitMQ</code>每秒可处理的消息。两者的性能差距可能在10倍以上。</p>
+<ul>
+<li><p>exchange持久化，在声明时指定durable &#x3D;&gt; 1</p>
+</li>
+<li><p>queue持久化，在声明时指定durable &#x3D;&gt; 1</p>
+</li>
+<li><p>消息持久化，在投递时指定delivery_mode &#x3D;&gt; 2（1是非持久化）</p>
+</li>
+</ul>
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2020/06/23/rabbitmq/RabbitMQ%E6%B6%88%E6%81%AF%E7%A1%AE%E8%AE%A4%E6%9C%BA%E5%88%B6/" title="RabbitMQ消息确认机制"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2020/06/21/rabbitmq/RabbitMQ%E5%8F%AF%E9%9D%A0%E6%B6%88%E6%81%AF%E6%8A%95%E9%80%92/" title="RabbitMQ可靠消息投递"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

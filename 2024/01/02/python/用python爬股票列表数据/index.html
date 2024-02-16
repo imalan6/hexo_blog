@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>用python爬股票列表数据 | Hexo</title>
+  <meta name="description" content="最近帮一个做金融的朋友爬股票数据。网上找遍了居然没有免费获取A股列表的接口，没办法只能去股票网站爬数据。 一、访问目标网站同花顺行情中心：https:&#x2F;&#x2F;q.10jqka.com.cn&#x2F;，打开开发者工具，查看代码，找到数据所在位置。有股票名称，代码，相关属性  但是在爬取过程中发现一个问题：程序自动打开的浏览器，程序模拟点击下一页，网页没有任何反应，一直卡住。但是手动打开网站，下一页是可以点击的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="用python爬股票列表数据">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="最近帮一个做金融的朋友爬股票数据。网上找遍了居然没有免费获取A股列表的接口，没办法只能去股票网站爬数据。 一、访问目标网站同花顺行情中心：https:&#x2F;&#x2F;q.10jqka.com.cn&#x2F;，打开开发者工具，查看代码，找到数据所在位置。有股票名称，代码，相关属性  但是在爬取过程中发现一个问题：程序自动打开的浏览器，程序模拟点击下一页，网页没有任何反应，一直卡住。但是手动打开网站，下一页是可以点击的">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/image-20240215185556750.png">
+<meta property="og:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/format,png.png">
+<meta property="article:published_time" content="2024-01-02T05:12:33.000Z">
+<meta property="article:modified_time" content="2024-02-15T11:54:51.642Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="python">
+<meta property="article:tag" content="爬虫">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/image-20240215185556750.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-python/用python爬股票列表数据" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      用python爬股票列表数据
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="article-date">
+	  <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/python/">python</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/python/" rel="tag">python</a>, <a class="article-tag-link-link" href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" rel="tag">爬虫</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <p> 最近帮一个做金融的朋友爬股票数据。网上找遍了居然没有免费获取A股列表的接口，没办法只能去股票网站爬数据。</p>
+<h3 id="一、访问目标网站"><a href="#一、访问目标网站" class="headerlink" title="一、访问目标网站"></a>一、访问目标网站</h3><p>同花顺行情中心：<a target="_blank" rel="noopener" href="https://q.10jqka.com.cn/%EF%BC%8C%E6%89%93%E5%BC%80%E5%BC%80%E5%8F%91%E8%80%85%E5%B7%A5%E5%85%B7%EF%BC%8C%E6%9F%A5%E7%9C%8B%E4%BB%A3%E7%A0%81%EF%BC%8C%E6%89%BE%E5%88%B0%E6%95%B0%E6%8D%AE%E6%89%80%E5%9C%A8%E4%BD%8D%E7%BD%AE%E3%80%82%E6%9C%89%E8%82%A1%E7%A5%A8%E5%90%8D%E7%A7%B0%EF%BC%8C%E4%BB%A3%E7%A0%81%EF%BC%8C%E7%9B%B8%E5%85%B3%E5%B1%9E%E6%80%A7">https://q.10jqka.com.cn/，打开开发者工具，查看代码，找到数据所在位置。有股票名称，代码，相关属性</a></p>
+<p><img src="/hexo_blog/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/image-20240215185556750.png" alt="image-20240215185556750"></p>
+<p>但是在爬取过程中发现一个问题：<strong>程序自动打开的浏览器，程序模拟点击下一页，网页没有任何反应，一直卡住。但是手动打开网站，下一页是可以点击的</strong>。估计是网站做了反爬虫处理。</p>
+<p>既然手动打开浏览器访问一切正常，那就换个思路：<strong>先手动打开浏览器访问，再用selenium连接已经打开的浏览器操作就可以了</strong>。</p>
+<h3 id="二、用selenium连接已经打开的浏览器"><a href="#二、用selenium连接已经打开的浏览器" class="headerlink" title="二、用selenium连接已经打开的浏览器"></a>二、用selenium连接已经打开的浏览器</h3><p>通过 selenium 连接浏览器，需要用到两个参数 –remote-debugging-port 和 –user-data-dir </p>
+<ul>
+<li><code>--remote-debugging-port</code> 这个参数允许通过远程的方式连接，selenium 当然也可以。</li>
+<li><code>--user-data-dir</code> 这个参数指定一个目录存放用户数据，在连接时也要设置，否则会失效。</li>
+</ul>
+<p>1、通过命令行打开浏览器：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">chrome.exe --remote-debugging-port=9222 --user-data-dir=<span class="string">&quot;C:\selenium\ChromeProfile&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>2、快捷方式设置参数</p>
+<p>用命令行打开浏览器不常用，可以在 chrome 的快捷方式上添加参数。右击快捷方式，选择属性，在目标栏后面加上：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">--remote-debugging-port=9222 --user-data-dir=<span class="string">&quot;C:\selenium\ChromeProfile&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/hexo_blog/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/format,png.png" alt="img"></p>
+<p>现在，通过快捷方式直接打开浏览器也可以远程调试了。</p>
+<p>3、selenium操作浏览器时，记得加上参数 options.add_experimental_option(“debuggerAddress”, “127.0.0.1:9222”)，关键代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">selenium_url_chrome</span>(<span class="params">url, <span class="built_in">id</span>, stock_values</span>):</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 谷歌浏览器位置</span></span><br><span class="line">    chrome_location = <span class="string">r&#x27;C:\Users\admin\Downloads\chrome-win64\chrome.exe&#x27;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 谷歌浏览器驱动地址</span></span><br><span class="line">    service = Service(<span class="string">&#x27;D:\chromedriver.exe&#x27;</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment"># 创建option对象</span></span><br><span class="line">    options = Options()</span><br><span class="line">    <span class="comment"># 指定连接端口</span></span><br><span class="line">    options.add_experimental_option(<span class="string">&quot;debuggerAddress&quot;</span>, <span class="string">&quot;127.0.0.1:9222&quot;</span>)</span><br><span class="line">    options.binary_location = chrome_location  </span><br><span class="line">    </span><br><span class="line">    driver = webdriver.Chrome(options=options, service=service)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 访问指定的url地址</span></span><br><span class="line">    driver.get(url)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 等待指定元素加载成功</span></span><br><span class="line">    WebDriverWait(driver, <span class="number">10</span>).until(EC.visibility_of(driver.find_element(by=By.ID, value=<span class="string">&#x27;maincont&#x27;</span>)))</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> get_data(driver, driver.page_source, <span class="built_in">id</span>, stock_values)</span><br></pre></td></tr></table></figure>
+
+<p>4、解析元素，抓取数据，关键代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">get_data</span>(<span class="params">driver, html_text, <span class="built_in">id</span>, stock_values</span>):</span><br><span class="line"></span><br><span class="line">    bs = BeautifulSoup(html_text, <span class="string">&quot;html.parser&quot;</span>)  <span class="comment"># 创建BeautifulSoup对象</span></span><br><span class="line">    body = bs.body  <span class="comment"># 获取body部分</span></span><br><span class="line">    data = body.find(<span class="string">&#x27;div&#x27;</span>, &#123;<span class="string">&#x27;id&#x27;</span>: <span class="string">&#x27;maincont&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line">    tbody = data.find(<span class="string">&#x27;table&#x27;</span>)  <span class="comment"># 获取ul部分</span></span><br><span class="line">    trs = tbody.find_all(<span class="string">&#x27;tr&#x27;</span>)  <span class="comment"># 获取所有的li</span></span><br><span class="line"></span><br><span class="line">    stock_value_temp = []</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> tr <span class="keyword">in</span> trs:  <span class="comment"># 对每个li标签中的内容进行遍历</span></span><br><span class="line">        tds = tr.find_all(<span class="string">&#x27;td&#x27;</span>)</span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">len</span>(tds) == <span class="number">0</span>:</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        <span class="keyword">if</span> tds[<span class="number">1</span>].text.startswith(<span class="string">&#x27;60&#x27;</span>): <span class="comment"># 代码60开头的是上海市场</span></span><br><span class="line">            market = <span class="string">&#x27;SH&#x27;</span></span><br><span class="line">        <span class="keyword">elif</span> tds[<span class="number">1</span>].text.startswith(<span class="string">&#x27;30&#x27;</span>) <span class="keyword">or</span> tds[<span class="number">1</span>].text.startswith(<span class="string">&#x27;00&#x27;</span>): <span class="comment"># 代码00、30开头的是深圳市场</span></span><br><span class="line">            market = <span class="string">&#x27;SZ&#x27;</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            market = <span class="string">&#x27;&#x27;</span></span><br><span class="line"></span><br><span class="line">        stock_value_temp.append((<span class="built_in">id</span>, tds[<span class="number">1</span>].text, market, tds[<span class="number">2</span>].text, tds[<span class="number">12</span>].text, tds[<span class="number">13</span>].text, <span class="string">&#x27;2024-01-02&#x27;</span>, <span class="number">0</span>))</span><br><span class="line">        stock_values.append((<span class="built_in">id</span>, tds[<span class="number">1</span>].text, market, tds[<span class="number">2</span>].text, tds[<span class="number">12</span>].text, tds[<span class="number">13</span>].text, <span class="string">&#x27;2024-01-02&#x27;</span>, <span class="number">0</span>))</span><br><span class="line">        <span class="built_in">id</span> += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;第 &#123;&#125; 页数据 &#123;&#125;：&#x27;</span>.<span class="built_in">format</span>(math.floor(<span class="built_in">id</span> / <span class="number">20</span>), stock_value_temp))</span><br><span class="line">    <span class="comment"># 写入excel表格</span></span><br><span class="line">    excel.write_excel_xlsx_append(<span class="string">&#x27;D:\\stock\\stock.xlsx&#x27;</span>, stock_value_temp)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        el = driver.find_element(By.XPATH, <span class="string">&quot;//a[contains(text(),&#x27;下一页&#x27;)]&quot;</span>)</span><br><span class="line">            <span class="comment"># driver.execute_script(&quot;arguments[0].click();&quot;, el)</span></span><br><span class="line">        el.click()</span><br><span class="line">    <span class="keyword">except</span>:</span><br><span class="line">        <span class="keyword">raise</span> CustomError(<span class="string">&quot;已到最后一页&quot;</span>)</span><br><span class="line"></span><br><span class="line">    WebDriverWait(driver, <span class="number">5</span>).until(EC.visibility_of(driver.find_element(by=By.ID, value=<span class="string">&#x27;maincont&#x27;</span>)))</span><br><span class="line">    time.sleep(<span class="number">0.5</span>)</span><br></pre></td></tr></table></figure>
+
+<p>5、同时保存进数据库mysql中，关键代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">insert_data</span>(<span class="params">stock_values</span>):</span><br><span class="line">    <span class="comment"># 打开数据库连接</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        db = pymysql.connect(host=<span class="string">&#x27;localhost&#x27;</span>, user=<span class="string">&#x27;root&#x27;</span>, passwd=<span class="string">&#x27;888888&#x27;</span>, port=<span class="number">3306</span>, db=<span class="string">&#x27;a_stock&#x27;</span>)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;连接数据库成功！&#x27;</span>)</span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;pymysql数据库连接异常：&quot;</span>, e)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 使用 cursor() 方法创建一个游标对象 cursor</span></span><br><span class="line">    cursor = db.cursor()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="comment"># 执行sql语句</span></span><br><span class="line">        cursor.executemany(<span class="string">&#x27;INSERT INTO stock_list(id, code, market, name, pe, ltsz, date, del) values(%s, %s, %s, %s, %s, %s, %s, %s)&#x27;</span>, stock_values)</span><br><span class="line">        <span class="comment"># 提交到数据库执行</span></span><br><span class="line">        db.commit()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;数据插入数据库成功！&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;数据库异常：&quot;</span>, e)</span><br></pre></td></tr></table></figure>
+
+
+
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" title="用tushare和akshare获取股票历史行情和每日的成交明细"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" title="用python爬china_radio音频"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

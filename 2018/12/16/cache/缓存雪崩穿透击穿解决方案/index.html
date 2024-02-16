@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>缓存雪崩、穿透、击穿解决方案 | Hexo</title>
+  <meta name="description" content="缓存雪崩、穿透、击穿解决方案缓存雪崩 问题描述  如果缓存在某一个时刻出现大规模失效(比如，设置缓存时采用了相同的过期时间，在同一时刻出现大面积缓存过期)，就会导致大量请求直接到了数据库，使得数据库压力巨大。如果并发量很高，可能会导致数据库宕机。从而形成一系列连锁反应，造成整个系统崩溃。这种情况就是缓存雪崩。  问题分析  造成缓存雪崩的关键原因在于同一时刻大规模的缓存失效，导致请求直接到了数据库">
+<meta property="og:type" content="article">
+<meta property="og:title" content="缓存雪崩、穿透、击穿解决方案">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2018/12/16/cache/%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%E7%A9%BF%E9%80%8F%E5%87%BB%E7%A9%BF%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="缓存雪崩、穿透、击穿解决方案缓存雪崩 问题描述  如果缓存在某一个时刻出现大规模失效(比如，设置缓存时采用了相同的过期时间，在同一时刻出现大面积缓存过期)，就会导致大量请求直接到了数据库，使得数据库压力巨大。如果并发量很高，可能会导致数据库宕机。从而形成一系列连锁反应，造成整个系统崩溃。这种情况就是缓存雪崩。  问题分析  造成缓存雪崩的关键原因在于同一时刻大规模的缓存失效，导致请求直接到了数据库">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/03/28/JQWCnt3pwjBM85y.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/28/hNpcPmKgCvH6FwT.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/28/EoNI4dgHeDnfswb.png">
+<meta property="article:published_time" content="2018-12-16T14:32:13.000Z">
+<meta property="article:modified_time" content="2024-02-14T10:02:31.800Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="redis">
+<meta property="article:tag" content="缓存">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/03/28/JQWCnt3pwjBM85y.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2018/12/16/cache/%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%E7%A9%BF%E9%80%8F%E5%87%BB%E7%A9%BF%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-cache/缓存雪崩穿透击穿解决方案" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      缓存雪崩、穿透、击穿解决方案
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2018/12/16/cache/%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%E7%A9%BF%E9%80%8F%E5%87%BB%E7%A9%BF%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/" class="article-date">
+	  <time datetime="2018-12-16T14:32:13.000Z" itemprop="datePublished">2018-12-16</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/redis/">redis</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/redis/" rel="tag">redis</a>, <a class="article-tag-link-link" href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" rel="tag">缓存</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2018/12/16/cache/%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%E7%A9%BF%E9%80%8F%E5%87%BB%E7%A9%BF%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="缓存雪崩、穿透、击穿解决方案"><a href="#缓存雪崩、穿透、击穿解决方案" class="headerlink" title="缓存雪崩、穿透、击穿解决方案"></a>缓存雪崩、穿透、击穿解决方案</h1><h2 id="缓存雪崩"><a href="#缓存雪崩" class="headerlink" title="缓存雪崩"></a>缓存雪崩</h2><ul>
+<li><h3 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h3></li>
+</ul>
+<p>如果缓存在某一个时刻出现大规模失效(比如，设置缓存时采用了相同的过期时间，在同一时刻出现大面积缓存过期)，就会导致大量请求直接到了数据库，使得数据库压力巨大。如果并发量很高，可能会导致数据库宕机。从而形成一系列连锁反应，造成整个系统崩溃。这种情况就是缓存雪崩。</p>
+<ul>
+<li><h3 id="问题分析"><a href="#问题分析" class="headerlink" title="问题分析"></a>问题分析</h3></li>
+</ul>
+<p>造成缓存雪崩的关键原因在于同一时刻大规模的缓存失效，导致请求直接到了数据库。出现这种情况主要有如下原因：</p>
+<p>1）<code>Redis</code>宕机，无法提供缓存查询服务。</p>
+<p>2）缓存采用了相同的过期时间。</p>
+<p>3）用户请求量过大。</p>
+<p>针对以上情况，考虑如下解决方案。</p>
+<ul>
+<li><h3 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h3></li>
+</ul>
+<p>1）针对<code>Redis</code>宕机问题，可以搭建<code>Redis</code>集群环境，保证<code>Redis</code>缓存的高可用，防止宕机导致缓存雪崩问题。</p>
+<p>2）针对缓存采用相同过期时间，可以如下解决：</p>
+<p>​	① 均匀过期。设置不同的随机过期时间，让缓存失效时间尽量均匀分布，避免相同的过期时间导致缓存雪崩，造成大量数据库访问。</p>
+<p>​	② 永不过期。热点数据缓存设置为永不过期，避免了大量的数据库请求。</p>
+<p>​	③ 缓存标记。给缓存加一个过期时间更快的标记，读缓存时先取标记，存在则取缓存，不存在则更新缓存。也可以把过期时间存放在Value里，读缓存时验证时间，发现快要过期时，更新缓存。</p>
+<p>​	④ 分级缓存。如果第一级缓存失效，访问二级缓存，每一级缓存的失效时间设置不同。</p>
+<p>3）针对请求量过大，可以如下解决：</p>
+<p>​	① 互斥访问。在缓存失效后，通过互斥锁或者队列控制读数据写缓存的线程数量，比如某个key只允许一个线程查询数据和写缓存，其他线程等待。</p>
+<p>​	② 熔断，限流，降级。当请求量达到一定阈值时，直接降级处理，返回“系统暂时不可用”之类的提示，防止过多请求直接访问数据库。这样至少能保证一部分用户正常访问，其他用户多刷新几次也能访问。</p>
+<ul>
+<li><h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3></li>
+</ul>
+<p>1）设置均匀过期时间，伪代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> String <span class="title function_">getRedisData</span><span class="params">(String key)</span>&#123;</span><br><span class="line">    ValueOperations&lt;String, String&gt; ops = redisTemplate.opsForValue();</span><br><span class="line">    <span class="comment">//从缓存中读取数据</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">value</span> <span class="operator">=</span> ops.get(key);</span><br><span class="line">    <span class="keyword">if</span>(StringUtils.isEmpty(value))&#123;</span><br><span class="line">        <span class="comment">//模拟从数据库中读取数据</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">dbData</span> <span class="operator">=</span> queryFromDB();</span><br><span class="line">        <span class="keyword">if</span>(StringUtils.isEmpty(dbData))&#123;</span><br><span class="line">            <span class="comment">//库中没有此数据，存入一个空值,过期时间为5分钟，用来解决缓存穿透问题</span></span><br><span class="line">            ops.set(key, <span class="string">&quot;&quot;</span>, <span class="number">5</span>, TimeUnit.MINUTES);</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">            <span class="comment">//将数据写入缓存，并设置一个随机的过期时间，解决缓存雪崩问题</span></span><br><span class="line">            <span class="comment">//生成500 ~ 1500之间的一个随机数，设置缓存过期时间随机分布在500 ~ 1500分钟内</span></span><br><span class="line">            <span class="type">Random</span> <span class="variable">random</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Random</span>();</span><br><span class="line">            <span class="type">int</span> <span class="variable">randomNum</span> <span class="operator">=</span> random.nextInt(<span class="number">1500</span> - <span class="number">500</span> + <span class="number">1</span>) + <span class="number">500</span>;</span><br><span class="line">            ops.set(key, dbData, randomNum, TimeUnit.MINUTES);</span><br><span class="line">            <span class="keyword">return</span> dbData;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//缓存中有数据，直接返回</span></span><br><span class="line">    <span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>2）并发量不高的情况下，加锁互斥访问数据库。伪代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> String <span class="title function_">getRedisData</span><span class="params">(String key)</span> &#123;</span><br><span class="line">    <span class="comment">// 从缓存中读取数据</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">value</span> <span class="operator">=</span> redisTemplate.opsForValue().get(key);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果存在，直接返回</span></span><br><span class="line">    <span class="keyword">if</span> (!StringUtils.isEmpty(value)) &#123;</span><br><span class="line">        <span class="keyword">return</span> value;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果不存在，互斥访问数据库。如果是集群环境，采用分布式锁。</span></span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="built_in">this</span>) &#123;</span><br><span class="line">        <span class="comment">// 获取锁后，再次从缓存中读取数据，这样操作可以避免前面获得锁的线程已经更新缓存还请求数据库</span></span><br><span class="line">        value = redisTemplate.opsForValue().get(key);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (StringUtils.isEmpty(value)) &#123;</span><br><span class="line">            <span class="comment">// 模拟从数据库中读取数据</span></span><br><span class="line">            <span class="type">String</span> <span class="variable">dbData</span> <span class="operator">=</span> queryFromDB();</span><br><span class="line">            <span class="keyword">if</span> (StringUtils.isEmpty(dbData)) &#123;</span><br><span class="line">                <span class="comment">//库中没有此数据，存入一个空值，过期时间为5分钟，用来解决缓存穿透问题</span></span><br><span class="line">                redisTemplate.opsForValue().set(key, <span class="string">&quot;&quot;</span>, <span class="number">5</span>, TimeUnit.MINUTES);</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">//将数据写入缓存，并设置一个随机的过期时间，解决缓存雪崩问题</span></span><br><span class="line">                <span class="comment">//生成500 ~ 1500之间的一个随机数，设置缓存过期时间随机分布在500 ~ 1500分钟内</span></span><br><span class="line">                <span class="type">Random</span> <span class="variable">random</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Random</span>();</span><br><span class="line">                <span class="type">int</span> <span class="variable">randomNum</span> <span class="operator">=</span> random.nextInt(<span class="number">1500</span> - <span class="number">500</span> + <span class="number">1</span>) + <span class="number">500</span>;</span><br><span class="line">                redisTemplate.opsForValue().set(key, dbData, randomNum, TimeUnit.MINUTES);</span><br><span class="line">                <span class="keyword">return</span> dbData;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//缓存中有数据，直接返回</span></span><br><span class="line">        <span class="keyword">return</span> value;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>3）给缓存添加标记，读取缓存前先取标记，伪代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> String <span class="title function_">getRedisData</span><span class="params">(String key)</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">cacheTime</span> <span class="operator">=</span> <span class="number">30</span>;</span><br><span class="line">    <span class="comment">// 缓存标记</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">cacheSign</span> <span class="operator">=</span> key + <span class="string">&quot;_sign&quot;</span>;</span><br><span class="line">    <span class="comment">// 读取缓存标记</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">sign</span> <span class="operator">=</span> redisTemplate.opsForValue().get(cacheSign);</span><br><span class="line">    <span class="comment">// 读取缓存</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">value</span> <span class="operator">=</span> redisTemplate.opsForValue().get(key);</span><br><span class="line">    <span class="comment">// 如果缓存标记不存在</span></span><br><span class="line">    <span class="keyword">if</span> (StringUtils.isEmpty(sign)) &#123;</span><br><span class="line">        <span class="comment">// 更新缓存标记</span></span><br><span class="line">        redisTemplate.opsForValue().set(cacheSign, <span class="string">&quot;ok&quot;</span>, cacheTime, TimeUnit.MINUTES);</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                <span class="comment">// 模拟从数据库中读取数据</span></span><br><span class="line">                <span class="type">String</span> <span class="variable">dbData</span> <span class="operator">=</span> queryFromDB();</span><br><span class="line">                <span class="comment">// 更新缓存,过期时间设为标记的两倍</span></span><br><span class="line">                redisTemplate.opsForValue().set(key, dbData, cacheTime * <span class="number">2</span>, TimeUnit.MINUTES);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;).start();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 返回缓存数据</span></span><br><span class="line">    <span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>缓存数据的过期时间比缓存标记的时间延长1倍，比如代码中标记缓存时间为30分钟，数据缓存为60分钟。 当缓存标记过期后，旧缓存数据还能返回使用，直到新线程在更新完缓存数据后，才会返回新缓存。这个必须允许一定的数据不一致。</p>
+<h2 id="缓存穿透"><a href="#缓存穿透" class="headerlink" title="缓存穿透"></a>缓存穿透</h2><ul>
+<li><h3 id="问题描述-1"><a href="#问题描述-1" class="headerlink" title="问题描述"></a>问题描述</h3></li>
+</ul>
+<p>缓存穿透是指用户不断请求缓存和数据库中都没有的数据。这样的请求在缓存中查不到，去数据库也查不到，相当于进行了两次无用的查询。如果是海量的这种无用查询，比如批量请求id值为-1或特别大不存在的数据，就可能导致数据库压力过大，严重会宕机。这样请求绕过缓存直接查数据库，可能是缓存命中率问题，也可能是恶意攻击问题。</p>
+<p><img src="https://i.loli.net/2021/03/28/JQWCnt3pwjBM85y.png" alt="1.png"></p>
+<ul>
+<li><h3 id="解决方案-1"><a href="#解决方案-1" class="headerlink" title="解决方案"></a>解决方案</h3></li>
+</ul>
+<p>针对缓存穿透问题，主要有两种解决方案：</p>
+<p>1）采用布隆过滤器，将所有可能存在的数据哈希到一个足够大的<code>bitmap</code>中，一个一定不存在的数据会被这个<code>bitmap</code>过滤掉，从而避免了查询缓存和数据库。</p>
+<p><img src="https://i.loli.net/2021/03/28/hNpcPmKgCvH6FwT.png" alt="2.png"></p>
+<p>2）缓存空数据，如果一个查询返回的数据为空，仍然把这个空结果进行缓存，但把它的过期时间设置很短，比如 5 分钟。这样，再次请求就能获取到数据，而不会再访问数据库，这样可以有效地避免网络攻击。</p>
+<p>3）接口校验，正常情况下很少会出现访问不存在<code>key</code>的情况，即使有也不会大量出现，如果是大量出现很可能遭到了网络攻击。这种情况，可以在网关做下安全校验：包括用户身份校验、数据合法性校验等，比如对于负数、特殊字符等请求参数直接过滤掉等等。</p>
+<ul>
+<li><h3 id="布隆过滤器"><a href="#布隆过滤器" class="headerlink" title="布隆过滤器"></a>布隆过滤器</h3></li>
+</ul>
+<p>布隆过滤器（<code>Bloom Filter</code>）是由布隆（Burton Howard Bloom）在1970年提出的。它实际上是由一个很长的二进制向量（位向量）和一系列随机映射函数组成的。布隆过滤器可以用于检索一个元素是否在一个集合中。它的优点是空间效率和查询时间都远远超过一般的算法，缺点是有一定的假阳性（False Positive）和数据删除困难，比如<code>Bloom Filter</code>报告某一元素存在于某集合中，但是实际上该元素可能并不在集合中。但是它没有假阴性（False Negative）的情形，即如果<code>Bloom Filter</code>报告某个元素没有在该集合中，那说明该元素确实不在集合中，不会出现反向漏报。<code>Bloom Filter</code>不适合那些“零错误”的应用场合，但在能容忍低错误率的应用场合下，<code>Bloom Filter</code>具有很高的效率，并通过极少的错误换取了极大的存储空间节省。</p>
+<p><code>BloomFilter</code>在判断数据是否时，如果判断的数据存在那有可能不存在，如果不存在那就是真的不存在。因为，<code>Bloom Filter</code>本身是用一个很长的二进制位来表示数据是否存在。在标记一个数据时是通过 N 个<code>Hash</code>函数来计算当前的值，每一个<code>hash</code>函数将对应的值进行计算会得到一个整数，然后就把对应的整数位设置为1。所以当你通过 N 个<code>Hash</code>函数计算后返回数据存在，那有可能是不存在的，因为有可能某一个二进制位是其它某个数据计算后设置为1的。如果二进制位足够长，使用的<code>Hash</code>函数比较多，那错误率就相对比较少，当然效率也会相应降低。</p>
+<p>下图是一个 m&#x3D;18, k&#x3D;3 的<code>BloomFilter</code>示例。集合中的 x、y、z 三个元素通过3个不同的哈希函数散列到<code>bitmap</code>数组中。当查询元素 w 时，因为有一个比特为0，所以 w 不在该集合中。</p>
+<p><img src="https://i.loli.net/2021/03/28/EoNI4dgHeDnfswb.png" alt="0.png"></p>
+<h4 id="布隆过滤器优缺点"><a href="#布隆过滤器优缺点" class="headerlink" title="布隆过滤器优缺点"></a>布隆过滤器优缺点</h4><p>1）优点</p>
+<p>和其他数据结构相比，布隆过滤器在空间效率和时间效率上都有巨大优势。布隆过滤器的存储空间和插入&#x2F;查询时间都是常数级别，这取决于Hash函数的个数k(O(k))。另外，Hash函数相互之间没有关系，方便并行实现。布隆过滤器不需要存储元素本身，在某些对保密要求比较高的应用场景有优势。</p>
+<p>2）缺点</p>
+<p>布隆过滤器的缺点主要是假阳性（False Positive）和删除元素困难。随着存入的元素数量增加，误算率也随之增加。但是如果元素数量太少，使用散列表就可以了。</p>
+<ul>
+<li><h3 id="代码实现-1"><a href="#代码实现-1" class="headerlink" title="代码实现"></a>代码实现</h3></li>
+</ul>
+<p>1）使用<code>guava</code>提供的布隆过滤器，伪代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">BloomFilterCache</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> BloomFilter&lt;Integer&gt; bloomFilter = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> RedisTemplate redisTemplate;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 初始化</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@PostConstruct</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">init</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="comment">// 获取redis中所有的key</span></span><br><span class="line">        Set&lt;String&gt; keys = redisTemplate.keys(<span class="string">&quot;*&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建一个布隆过滤器，具体实现方式有guava实现</span></span><br><span class="line">        bloomFilter = BloomFilter.create(Funnels.integerFunnel(), keys.size());</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 将redis中的key映射到布隆过滤器上</span></span><br><span class="line">        keys.forEach(key -&gt;bloomFilter.put(Integer.parseInt(key)));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 判断key是否存在</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> key</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">mightContain</span><span class="params">(String key)</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> bloomFilter.mightContain(Integer.parseInt(key));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上是使用<code>guava</code>提供的布隆过滤器，在服务初始化时把<code>redis</code>所有的<code>key</code>映射到布隆过滤器上。另外，在向<code>redis</code>添加缓存的时候也应该把<code>key</code>映射上去。</p>
+<p>2）缓存空数据，设置较短的过期时间，5分钟，伪代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> String <span class="title function_">getRedisData</span><span class="params">(String key)</span> &#123;</span><br><span class="line">    <span class="comment">//从缓存中读取数据</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">value</span> <span class="operator">=</span> redisTemplate.opsForValue().get(key);</span><br><span class="line">    <span class="keyword">if</span>(StringUtils.isEmpty(value))&#123;</span><br><span class="line">        <span class="comment">// 模拟从数据库中读取数据</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">dbData</span> <span class="operator">=</span> queryFromDB();</span><br><span class="line">        <span class="keyword">if</span> (StringUtils.isEmpty(dbData)) &#123;</span><br><span class="line">                <span class="comment">//库中没有此数据，存入一个空值，过期时间为5分钟，用来解决缓存穿透问题</span></span><br><span class="line">                redisTemplate.opsForValue().set(key, <span class="string">&quot;&quot;</span>, <span class="number">5</span>, TimeUnit.MINUTES);</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">            redisTemplate.opsForValue().set(key, dbData);</span><br><span class="line">            <span class="keyword">return</span> dbData;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//缓存中有数据，直接返回</span></span><br><span class="line">    <span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="缓存击穿"><a href="#缓存击穿" class="headerlink" title="缓存击穿"></a>缓存击穿</h2><h3 id="问题描述-2"><a href="#问题描述-2" class="headerlink" title="问题描述"></a>问题描述</h3><p>在高并发情况下，某一个热点key，在缓存过期的一瞬间，可能有大量的请求进来，由于此时缓存过期，所以请求直接访问了数据库，造成瞬时数据库请求量过大，可能导致数据库宕机。击穿和雪崩有点类似，不过击穿主要针对热点key过期，而雪崩是针对大面积key同时过期。</p>
+<h3 id="解决方案-2"><a href="#解决方案-2" class="headerlink" title="解决方案"></a>解决方案</h3><p>1）加锁互斥访问，在海量请求中，只有一个请求线程拿到锁并执行数据库查询操作，其他的线程阻塞等待，当第一个线程将数据写入缓存后，其余线程直接访问缓存返回数据，避免了访问数据库，和雪崩中的互斥访问类似。</p>
+<p>2）设置热点数据不过期。直接将缓存设置为不过期，然后由定时任务异步加载数据，更新缓存。这种方式由于异步线程更新数据可能延迟，部分线程可能获取到脏数据，所以必须结合业务考虑。</p>
+<h3 id="代码实现-2"><a href="#代码实现-2" class="headerlink" title="代码实现"></a>代码实现</h3><p>1）如果是分布式环境，可以考虑<code>Redis</code>分布式锁。如果服务部署不是特别多，对性能要求不是特别高，也可以直接使用<code>JVM</code>互斥锁，JVM锁已经可以大大减少访问数据库的线程数量了。</p>
+<p>使用<code>redis</code>分布式锁的伪代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> Object <span class="title function_">getData</span><span class="params">(String key)</span> <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">    <span class="type">Object</span> <span class="variable">value</span> <span class="operator">=</span> redis.get(key);</span><br><span class="line">    <span class="comment">// 缓存值过期</span></span><br><span class="line">    <span class="keyword">if</span> (value == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="comment">// lockRedis：专门用于加锁的redis；</span></span><br><span class="line">        <span class="comment">// 使用key加锁，防止不同key阻塞，提高性能，&quot;empty&quot;：加锁的值随便设置都可以</span></span><br><span class="line">        <span class="keyword">if</span> (lockRedis.set(key, <span class="string">&quot;empty&quot;</span>, <span class="string">&quot;PX&quot;</span>, lockExpire, <span class="string">&quot;NX&quot;</span>)) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="comment">// 查询数据库，并写到缓存，让其他线程可以直接走缓存</span></span><br><span class="line">                value = getDataFromDb(key);</span><br><span class="line">                redis.set(key, value, <span class="string">&quot;PX&quot;</span>, expire);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line"></span><br><span class="line">            &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                <span class="comment">// 释放锁</span></span><br><span class="line">                lockRedis.delete(key);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 等待100ms后重试，可能第一个线程已经更新了缓存</span></span><br><span class="line">            Thread.sleep(<span class="number">100</span>);</span><br><span class="line">            <span class="keyword">return</span> getRedisData(key);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>加锁时可以使用<code>key</code>加锁，这样可以防止请求不同key的线程阻塞，提高性能。</p>
+<p>前面已经有<code>synchronized</code>实现的伪代码，这里使用<code>ReentrantLock</code>锁实现一下，基本类似：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> String <span class="title function_">getRedisData</span><span class="params">(String key)</span> &#123;</span><br><span class="line">    <span class="comment">//从缓存中读取数据</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">value</span> <span class="operator">=</span> redisTemplate.opsForValue().get(key);</span><br><span class="line">    <span class="keyword">if</span>(StringUtils.isEmpty(value))&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            <span class="keyword">if</span>(reenLock.tryLock())&#123;</span><br><span class="line">                <span class="comment">// 模拟从数据库中读取数据</span></span><br><span class="line">                value = queryFromDB();</span><br><span class="line">                <span class="keyword">if</span> (StringUtils.isEmpty(value)) &#123;</span><br><span class="line">                        <span class="comment">//库中没有此数据，存入一个空值，过期时间为5分钟，用来解决缓存穿透问题</span></span><br><span class="line">                        redisTemplate.opsForValue().set(key, <span class="string">&quot;&quot;</span>, <span class="number">5</span>, TimeUnit.MINUTES);</span><br><span class="line">                        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">                &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">                    redisTemplate.opsForValue().set(key, value);</span><br><span class="line">                &#125;      	</span><br><span class="line">            &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">                <span class="comment">// 等待100ms后重试，可能第一个线程已经更新了缓存</span></span><br><span class="line">                Thread.sleep(<span class="number">100</span>);</span><br><span class="line">                <span class="keyword">return</span> getRedisData(key);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="comment">//释放锁</span></span><br><span class="line">            reenLock.unlock();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//缓存中有数据，直接返回</span></span><br><span class="line">    <span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2019/02/12/distributed_component/%E5%88%86%E5%B8%83%E5%BC%8FID%E7%94%9F%E6%88%90%E5%99%A8/" title="分布式 ID 生成器"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2018/12/03/java_others/Java%E5%9B%9E%E8%B0%83%E6%9C%BA%E5%88%B6/" title="Java回调机制"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

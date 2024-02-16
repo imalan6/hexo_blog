@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>生产环境系统运行缓慢问题排查 | Hexo</title>
+  <meta name="description" content="生产环境系统运行缓慢问题排查主要问题线上环境可能出现系统突然运行缓慢，甚至可能导致线上系统不可用。如果遇到这样的情况，首先需要导出jstack日志和内存信息，然后重启系统，保证系统的可用性。这种情况可能的原因有：  代码中某个位置读取数据量较大，导致系统内存耗尽，从而导致Full GC次数过多，系统缓慢；  代码中存在耗时计算，导致 CPU 占用过高，系统运行缓慢；   以上两种是出现频率最高的情">
+<meta property="og:type" content="article">
+<meta property="og:title" content="生产环境系统运行缓慢问题排查">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2021/06/21/jvm/%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E7%B3%BB%E7%BB%9F%E8%BF%90%E8%A1%8C%E7%BC%93%E6%85%A2%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="生产环境系统运行缓慢问题排查主要问题线上环境可能出现系统突然运行缓慢，甚至可能导致线上系统不可用。如果遇到这样的情况，首先需要导出jstack日志和内存信息，然后重启系统，保证系统的可用性。这种情况可能的原因有：  代码中某个位置读取数据量较大，导致系统内存耗尽，从而导致Full GC次数过多，系统缓慢；  代码中存在耗时计算，导致 CPU 占用过高，系统运行缓慢；   以上两种是出现频率最高的情">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/03/12/1zUHkiXcTMV6K8Z.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/12/glKzrQ7cHsqxuUR.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/12/fPH5xDr8ETJSYvG.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/12/iO3VqcYgIQCsmJn.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/12/38Bw4hmgrXUNZEO.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/12/d8lem9W6SxvwY72.png">
+<meta property="article:published_time" content="2021-06-21T15:05:22.000Z">
+<meta property="article:modified_time" content="2024-02-14T11:20:05.185Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="jvm">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/03/12/1zUHkiXcTMV6K8Z.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2021/06/21/jvm/%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E7%B3%BB%E7%BB%9F%E8%BF%90%E8%A1%8C%E7%BC%93%E6%85%A2%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-jvm/生产环境系统运行缓慢问题排查" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      生产环境系统运行缓慢问题排查
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2021/06/21/jvm/%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E7%B3%BB%E7%BB%9F%E8%BF%90%E8%A1%8C%E7%BC%93%E6%85%A2%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/" class="article-date">
+	  <time datetime="2021-06-21T15:05:22.000Z" itemprop="datePublished">2021-06-21</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/jvm/">jvm</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/jvm/" rel="tag">jvm</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2021/06/21/jvm/%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E7%B3%BB%E7%BB%9F%E8%BF%90%E8%A1%8C%E7%BC%93%E6%85%A2%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="生产环境系统运行缓慢问题排查"><a href="#生产环境系统运行缓慢问题排查" class="headerlink" title="生产环境系统运行缓慢问题排查"></a>生产环境系统运行缓慢问题排查</h1><h2 id="主要问题"><a href="#主要问题" class="headerlink" title="主要问题"></a>主要问题</h2><p>线上环境可能出现系统突然运行缓慢，甚至可能导致线上系统不可用。如果遇到这样的情况，首先需要导出<code>jstack</code>日志和内存信息，然后重启系统，保证系统的可用性。这种情况可能的原因有：</p>
+<ul>
+<li><p>代码中某个位置读取数据量较大，导致系统内存耗尽，从而导致<code>Full GC</code>次数过多，系统缓慢；</p>
+</li>
+<li><p>代码中存在耗时计算，导致 CPU 占用过高，系统运行缓慢；</p>
+</li>
+</ul>
+<p>以上两种是出现频率最高的情况，可能直接导致系统不可用。另外几种情况也可能导致系统运行缓慢：</p>
+<ul>
+<li><p>代码某个位置有阻塞性操作，导致该功能调用比较耗时，但这样情况比较随机；</p>
+</li>
+<li><p>某个线程由于某种原因进入<code>WAITING</code>状态，此时该功能整体不可用，但无法复现；</p>
+</li>
+<li><p>由于锁使用不当，使得多个线程进入死锁状态，导致系统整体运行比较缓慢。</p>
+</li>
+</ul>
+<p>对于这几种情况，通过查看 CPU 和系统内存是无法检查出具体问题的，因为可能 CPU 和系统内存使用情况都不高，但是系统却很慢。遇到这些情况，只有分析系统日志来排查。</p>
+<h2 id="Full-GC次数过多"><a href="#Full-GC次数过多" class="headerlink" title="Full GC次数过多"></a>Full GC次数过多</h2><p>相对来说，这种情况是最容易出现的，尤其是新功能上线时。对于<code>Full GC</code>较多的情况，其主要有如下两个特征：</p>
+<ul>
+<li><p>线上多个线程 CPU 占用率都超过了 100%，通过<code>jstack</code>命令可以看到这些线程主要是垃圾回收线程；</p>
+</li>
+<li><p>通过<code>jstat</code>命令监控<code>GC</code>情况，可以看到<code>Full GC</code>次数非常多，且次数在不断增加。</p>
+</li>
+</ul>
+<p>首先，我们使用<code>top</code>命令查看系统 CPU 的占用情况，如下是系统 CPU 较高的一个情况：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">top - 08:31:10 up 30 min, 0 <span class="built_in">users</span>, load average: 0.73, 0.58, 0.34</span><br><span class="line">KiB Mem: 2046460 total, 1923864 used, 122596 free, 14388 buffers</span><br><span class="line">KiB Swap: 1048572 total, 0 used, 1048572 free. 1192352 cached Mem</span><br><span class="line"></span><br><span class="line">PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ COMMAND</span><br><span class="line">9 root 20 0 2557160 288976 15812 S 98.0 14.1 0:42.60 java</span><br></pre></td></tr></table></figure>
+
+<p>从结果可以看出，有一个进程为 9 的 java应用，它的 CPU 占用率达到了 98.8%，这是很不正常的情况。然后使用如下命令查看下该进程的各个线程运行情况：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">top -Hp 9</span><br></pre></td></tr></table></figure>
+
+<p>该进程下的各个线程运行情况如下：</p>
+<p><img src="https://i.loli.net/2021/03/12/1zUHkiXcTMV6K8Z.png" alt="2.png"></p>
+<p>可以看到进程为9的 Java 程序中各个线程的 CPU 占用情况，然后通过<code>jstack</code>命令查看线程 id 为 10 的线程为什么耗费 CPU 最高。需要注意的是，在<code>jsatck</code>命令展示的结果中，线程 id 都转换成了十六进制形式，可以用如下命令转换：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">printf</span> <span class="string">&quot;%x\n&quot;</span> 10</span><br><span class="line"></span><br><span class="line">a</span><br></pre></td></tr></table></figure>
+
+<p>十六进制形式的线程 id 的为 0xa，然后在<code>jstack</code>命令输出结果中查找对应的线程信息：</p>
+<p><img src="https://i.loli.net/2021/03/12/glKzrQ7cHsqxuUR.png" alt="3.png"></p>
+<p>找到<code>nid=0xa</code>的线程，这里<code>nid</code>的意思就是操作系统线程 id 的意思。可以看到线程名称是<code>VM Thread</code>，而<code>VM Thread</code>指的就是垃圾回收的线程。这里我们基本上可以确定，当前系统缓慢的原因主要是垃圾回收过于频繁，导致<code>GC</code>停顿时间较长。通过如下命令可以查看<code>GC</code>的情况：</p>
+<p><img src="https://i.loli.net/2021/03/12/fPH5xDr8ETJSYvG.png" alt="4.png"></p>
+<p>可以看到，这里<code>FGC</code>指的是<code>Full GC</code>数量，高达6793，而且还在不断增长。从而进一步证实了是由于内存溢出导致的系统缓慢。那么确认了内存溢出，但是如何查看是哪些对象导致的内存溢出呢，可以<code>dump</code>出内存日志，然后通过<code>eclipse</code>的<code>MAT</code>工具进行查看，如下是其展示的一个对象树结构：</p>
+<p><img src="https://i.loli.net/2021/03/12/iO3VqcYgIQCsmJn.png" alt="5.png"></p>
+<p>经过<code>MAT</code>工具分析，基本上能确定内存中主要是哪个对象比较消耗内存，然后找到该对象的创建位置，进行处理即可。这里主要是<code>PrintStream</code>最多，但是其内存消耗量也只有 12.2%，也就是说，其还不足以导致大量的<code>Full GC</code>，此时我们需要考虑另外一种情况，就是代码或者第三方依赖的包中有显示的<code>System.gc()</code>调用。这种情况我们查看<code>dump</code>内存得到的文件即可判断，因为其会打印<code>GC</code>原因：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[Full GC (System.gc()) [Tenured: 262546K-&gt;262546K(349568K), 0.0014879 secs] 262546K-&gt;262546K(506816K), [Metaspace: 3109K-&gt;3109K(1056768K)], 0.0015151 secs] [Times: user=0.00 sys=0.00, real=0.01 secs]</span><br><span class="line">[GC (Allocation Failure) [DefNew: 2795K-&gt;0K(157248K), 0.0001504 secs][Tenured: 262546K-&gt;402K(349568K), 0.0012949 secs] 265342K-&gt;402K(506816K), [Metaspace: 3109K-&gt;3109K(1056768K)], 0.0014699 secs] [Times: user=0.00</span><br></pre></td></tr></table></figure>
+
+<p>比如这里第一次<code>GC</code>是由于<code>System.gc()</code>的显示调用导致的，而第二次<code>GC</code>则是<code>JVM</code>主动发起的。总结来说，对于<code>Full GC</code>次数过多，主要有以下两种原因：</p>
+<ul>
+<li><p>代码中一次获取了大量的对象，导致内存溢出，此时可以通过<code>eclipse</code>的<code>MAT</code>工具查看内存中有哪些对象比较多；</p>
+</li>
+<li><p>内存占用不高，但是<code>Full GC</code>次数比较多，此时可能存在显示调用<code>System.gc()</code>导致<code>GC</code>次数过多，可以通过添加<code>-XX:+DisableExplicitGC</code>参数来禁用<code>JVM</code>对显示<code>GC</code>的响应。</p>
+</li>
+</ul>
+<h2 id="CPU占用过高"><a href="#CPU占用过高" class="headerlink" title="CPU占用过高"></a>CPU占用过高</h2><p>CPU 过高可能是系统频繁地进行<code>Full GC</code>，导致系统缓慢。而我们平常也肯能遇到比较耗时的计算，导致 CPU 过高的情况，此时查看方式其实与上面的非常类似。首先我们通过<code>top</code>命令查看当前 CPU 消耗过高的进程是哪个，从而得到进程 id；然后通过<code>top -Hp &lt;pid&gt;</code>来查看该进程中有哪些线程 CPU 过高，一般超过 80%就是比较高的，80% 左右是合理情况。这样我们就能得到 CPU 消耗比较高的线程 id。接着通过该 线程 id 的十六进制表示在<code>jstack</code>日志中查看当前线程具体的堆栈信息。</p>
+<p>在这里就可以区分导致 CPU 过高的原因具体是<code>Full GC</code>次数过多还是代码中有比较耗时的计算了。如果是<code>Full GC</code>次数过多，那么通过<code>jstack</code>得到的线程信息会是类似于<code>VM Thread</code>之类的线程，而如果是代码中有比较耗时的计算，那么我们得到的就是一个线程的具体堆栈信息。如下是一个代码中有比较耗时的计算，导致 CPU 过高的线程信息：</p>
+<p><img src="https://i.loli.net/2021/03/12/38Bw4hmgrXUNZEO.png" alt="0.png"></p>
+<p>这里可以看到，在请求<code>UserController</code>的时候，由于该<code>Controller</code>进行了一个比较耗时的调用，导致该线程的 CPU 一直处于100%。我们可以根据堆栈信息，直接定位到<code>UserController</code>的34行，查看代码中具体是什么原因导致计算量如此之高。</p>
+<h2 id="接口耗时"><a href="#接口耗时" class="headerlink" title="接口耗时"></a>接口耗时</h2><p>对于这种情况，比较典型的例子就是，访问接口返回很慢，而且由于这样的接口耗时是不定时出现的，这就导致了我们在通过<code>jstack</code>命令即使得到了线程访问的堆栈信息，我们也没法判断具体哪个线程是正在执行比较耗时操作的线程。</p>
+<p>对于不定时出现的接口耗时严重问题，定位思路如下：首先找到该接口，通过压测工具不断加大访问力度，如果说该接口中有某个位置是比较耗时的，由于访问频率非常高，那么大多数线程都将阻塞在这里，这将导致多个线程具有相同的堆栈日志，然后分析日志就可以定位到该接口中比较耗时的代码的位置。如下是一个代码中有比较耗时的阻塞操作通过压测工具得到的线程堆栈日志：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;http-nio-8080-exec-2&quot;</span> <span class="comment">#29 daemon prio=5 os_prio=31 tid=0x00007fd08cb26000 nid=0x9603 waiting on condition [0x00007000031d5000]</span></span><br><span class="line"> java.lang.Thread.State: TIMED_WAITING (sleeping)</span><br><span class="line"> at java.lang.Thread.<span class="built_in">sleep</span>(Native Method)</span><br><span class="line"> at java.lang.Thread.<span class="built_in">sleep</span>(Thread.java:340)</span><br><span class="line"> at java.util.concurrent.TimeUnit.<span class="built_in">sleep</span>(TimeUnit.java:386)</span><br><span class="line"> at com.aibaobei.user.controller.UserController.detail(UserController.java:18)</span><br><span class="line"></span><br><span class="line"><span class="string">&quot;http-nio-8080-exec-3&quot;</span> <span class="comment">#30 daemon prio=5 os_prio=31 tid=0x00007fd08cb27000 nid=0x6203 waiting on condition [0x00007000032d8000]</span></span><br><span class="line"> java.lang.Thread.State: TIMED_WAITING (sleeping)</span><br><span class="line"> at java.lang.Thread.<span class="built_in">sleep</span>(Native Method)</span><br><span class="line"> at java.lang.Thread.<span class="built_in">sleep</span>(Thread.java:340)</span><br><span class="line"> at java.util.concurrent.TimeUnit.<span class="built_in">sleep</span>(TimeUnit.java:386)</span><br><span class="line"> at com.aibaobei.user.controller.UserController.detail(UserController.java:18)</span><br><span class="line"></span><br><span class="line"><span class="string">&quot;http-nio-8080-exec-4&quot;</span> <span class="comment">#31 daemon prio=5 os_prio=31 tid=0x00007fd08d0fa000 nid=0x6403 waiting on condition [0x00007000033db000]</span></span><br><span class="line"> java.lang.Thread.State: TIMED_WAITING (sleeping)</span><br><span class="line"> at java.lang.Thread.<span class="built_in">sleep</span>(Native Method)</span><br><span class="line"> at java.lang.Thread.<span class="built_in">sleep</span>(Thread.java:340)</span><br><span class="line"> at java.util.concurrent.TimeUnit.<span class="built_in">sleep</span>(TimeUnit.java:386)</span><br><span class="line"> at com.aibaobei.user.controller.UserController.detail(UserController.java:18)</span><br></pre></td></tr></table></figure>
+
+<p>从上面的日志可以看出，有多个线程都阻塞在了<code>UserController</code>的第18行代码，说明这是一个阻塞点，也就是导致该接口比较缓慢的原因，然后分析代码即可。</p>
+<h2 id="线程WAITING状态"><a href="#线程WAITING状态" class="headerlink" title="线程WAITING状态"></a>线程WAITING状态</h2><p>线程处于 waiting 状态是比较罕见的一种情况，但是也是有可能出现的，而且由于其具有一定的“不可复现性”，在排查的时候是非常难以发现的。笔者曾经就遇到过类似的这种情况，具体的场景是，在使用<code>CountDownLatch</code>时，由于需要每一个并行的任务都执行完成之后才会唤醒主线程往下执行。而当时我们是通过<code>CountDownLatch</code>控制多个线程连接并导出用户的<code>gmail</code>邮箱数据，这其中有一个线程连接上了用户邮箱，但是连接被服务器挂起了，导致该线程一直在等待服务器的响应。最终导致我们的主线程和其余几个线程都处于 WAITING 状态。</p>
+<p>对于这样的问题，查看过<code>jstack</code>日志的读者应该都知道，正常情况下，线上大多数线程都是处于<code>TIMED_WAITING</code>状态，而我们这里出问题的线程所处的状态与其是一模一样的，这就非常容易混淆我们的判断。解决这个问题的思路主要如下：</p>
+<ul>
+<li>通过<code>grep</code>命令在<code>jstack</code>堆栈日志中找出所有的处于<code>TIMED_WAITING</code>状态的线程，将其导出到某个文件中，如<code>a1.log</code>，如下是一个导出的日志文件示例：</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;Attach Listener&quot;</span> <span class="comment">#13 daemon prio=9 os_prio=31 tid=0x00007fe690064000 nid=0xd07 waiting on condition [0x0000000000000000]</span></span><br><span class="line"><span class="string">&quot;DestroyJavaVM&quot;</span> <span class="comment">#12 prio=5 os_prio=31 tid=0x00007fe690066000 nid=0x2603 waiting on condition [0x0000000000000000]</span></span><br><span class="line"><span class="string">&quot;Thread-0&quot;</span> <span class="comment">#11 prio=5 os_prio=31 tid=0x00007fe690065000 nid=0x5a03 waiting on condition [0x0000700003ad4000]</span></span><br><span class="line"><span class="string">&quot;C1 CompilerThread3&quot;</span> <span class="comment">#9 daemon prio=9 os_prio=31 tid=0x00007fe68c00a000 nid=0xa903 waiting on condition [0x0000000000000000]</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>等待一段时间之后，比如10s，再次对<code>jstack</code>日志进行<code>grep</code>，将其导出到另一个文件，如<code>a2.log</code>，结果如下所示：</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;DestroyJavaVM&quot;</span> <span class="comment">#12 prio=5 os_prio=31 tid=0x00007fe690066000 nid=0x2603 waiting on condition [0x0000000000000000]</span></span><br><span class="line"><span class="string">&quot;Thread-0&quot;</span> <span class="comment">#11 prio=5 os_prio=31 tid=0x00007fe690065000 nid=0x5a03 waiting on condition [0x0000700003ad4000]</span></span><br><span class="line"><span class="string">&quot;VM Periodic Task Thread&quot;</span> os_prio=31tid=0x00007fe68d114000nid=0xa803waiting on condition</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>重复步骤2，待导出 3<del>4 个文件之后，我们对导出的文件进行对比，找出其中在这几个文件中一直都存在的用户线程，这个线程基本上就可以确认是包含了处于等待状态有问题的线程。因为正常的请求线程是不会在20</del>30s之后还是处于等待状态的。</li>
+<li>经过排查得到这些线程之后，我们可以继续对其堆栈信息进行排查，如果该线程本身就应该处于等待状态，比如用户创建的线程池中处于空闲状态的线程，那么这种线程的堆栈信息中是不会包含用户自定义的类的。这些都可以排除掉，而剩下的线程基本上就可以确认是我们要找的有问题的线程。通过其堆栈信息，我们就可以得出具体是在哪个位置的代码导致该线程处于等待状态了。</li>
+</ul>
+<p>这里需要说明的是，我们在判断是否为用户线程时，可以通过线程最前面的线程名来判断，因为一般的框架的线程命名都是非常规范的，我们通过线程名就可以直接判断得出该线程是某些框架中的线程，这种线程基本上可以排除掉。而剩余的，比如上面的<code>Thread-0</code>，以及我们可以辨别的自定义线程名，这些都是我们需要排查的对象。</p>
+<p>经过上面的方式进行排查之后，我们基本上就可以得出这里的<code>Thread-0</code>就是我们要找的线程，通过查看其堆栈信息，我们就可以得到具体是在哪个位置导致其处于等待状态了。如下示例中则是在<code>SyncTask</code>的第8行导致该线程进入等待了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;Thread-0&quot;</span> <span class="comment">#11 prio=5 os_prio=31 tid=0x00007f9de08c7000 nid=0x5603 waiting on condition [0x0000700001f89000]</span></span><br><span class="line"> java.lang.Thread.State: WAITING (parking)</span><br><span class="line"> at sun.misc.Unsafe.park(Native Method)</span><br><span class="line"> at java.util.concurrent.locks.LockSupport.park(LockSupport.java:304)</span><br><span class="line"> at com.aibaobei.chapter2.eg4.SyncTask.lambda$main<span class="variable">$0</span>(SyncTask.java:8)</span><br><span class="line"> at com.aibaobei.chapter2.eg4.SyncTask$$Lambda<span class="variable">$1</span>/1791741888.run(Unknown Source)</span><br><span class="line"> at java.lang.Thread.run(Thread.java:748)</span><br></pre></td></tr></table></figure>
+
+<h2 id="线程死锁"><a href="#线程死锁" class="headerlink" title="线程死锁"></a>线程死锁</h2><p>对于死锁，这种情况基本上很容易发现，因为<code>jstack</code>堆栈信息可以很方便检查出死锁，并且在日志中打印具体的死锁线程信息。如下是一个产生死锁的一个<code>jstack</code>日志示例：</p>
+<p><img src="https://i.loli.net/2021/03/12/d8lem9W6SxvwY72.png" alt="1.png"></p>
+<p>可以看到，在<code>jstack</code>堆栈日志的底部，其直接帮我们分析了日志中存在哪些死锁，以及每个死锁的线程堆栈信息。这里有两个用户线程分别在等待对方释放锁，而被阻塞的位置都是在<code>ConnectTask</code>的第5行，此时我们就可以直接定位到该位置，并且进行代码分析，从而找到产生死锁的原因。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>本文主要讲解了线上可能出现的五种导致系统缓慢的情况，详细分析了每种情况产生时的现象。根据现象可以通过哪些方式定位得到是这种原因导致的系统缓慢。简要的说，可以分为如下步骤：</p>
+<p>1）通过<code>top</code>命令查看 CPU 占用率高的进程，然后通过<code>top -Hp &lt;pid&gt;</code>命令查看当前进程的各个线程运行情况，找出<code>CPU</code>过高的线程之后，再将线程 id 转换为十六进制形式，最后在<code>jstack</code>日志中查看该线程主要的工作。这里又分为两种情况：</p>
+<ul>
+<li><p>如果是用户线程，则通过查看该线程的堆栈信息定位具体是哪处代码运行比较消耗<code>CPU</code>；</p>
+</li>
+<li><p>如果该线程是<code>VM Thread</code>线程，则通过<code>jstat -gcutil &lt;pid&gt; &lt;period&gt; &lt;times&gt;</code>命令监控当前系统的<code>GC</code>状况，然后通过<code>jmapdump:format=b,file=&lt;filepath&gt; &lt;pid&gt;</code>导出系统当前的内存数据。并通过<code>eclipse</code>的<code>MAT</code>内存分析工具查看具体是什么对象比较消耗内存，最后再修改相关代码；详见 <a href="jvm/%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83CPU100%E8%A7%A3%E5%86%B3%E6%80%9D%E8%B7%AF.md">生产环境CPU 100%解决思路</a>。</p>
+</li>
+</ul>
+<p>2）如果通过<code>top</code>命令看到<code>CPU</code>并不高，并且系统内存占用率也比较低。此时就可以考虑是否是由于另外三种情况导致的问题。具体的可以根据具体情况分析：</p>
+<p>3）如果是接口调用比较耗时，并且是不定时出现，则可以通过压测的方式加大阻塞点出现的频率，并通过<code>jstack</code>查看堆栈信息，找到系统阻塞点；</p>
+<p>4）如果是某个功能突然出现停滞状况，这种情况也无法复现，此时可以通过多次导出<code>jstack</code>日志的方式对比哪些用户线程是一直都处于等待状态，这些线程就是可能存在问题的线程；</p>
+<p>5）如果通过<code>jstack</code>查看到死锁线程，则可以检查导致线程死锁的具体资源并处理相应的问题。</p>
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2021/06/22/nginx/Nginx%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" title="Nginx反向代理集群部署"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2021/05/26/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BSleuth%E5%92%8CZipkin/" title="SpringCloud系列之Sleuth和Zipkin"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

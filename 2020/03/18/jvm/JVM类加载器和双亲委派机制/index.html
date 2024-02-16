@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>JVM 类加载器和双亲委派机制 | Hexo</title>
+  <meta name="description" content="JVM 类加载器和双亲委派机制类加载器Java 虚拟机的类加载有三大步骤：加载，链接，初始化。其中加载是指查找字节流（也就是由 Java 编译器生成的 class 文件）并据此创建类的过程，这中间我们需要借助类加载器来查找字节流。Java 虚拟机提供了 3 种类加载器，分别是：启动（Bootstrap）类加载器、扩展（Extension）类加载器、应用（Application）类加载器。除了启动类">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JVM 类加载器和双亲委派机制">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2020/03/18/jvm/JVM%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E5%92%8C%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="JVM 类加载器和双亲委派机制类加载器Java 虚拟机的类加载有三大步骤：加载，链接，初始化。其中加载是指查找字节流（也就是由 Java 编译器生成的 class 文件）并据此创建类的过程，这中间我们需要借助类加载器来查找字节流。Java 虚拟机提供了 3 种类加载器，分别是：启动（Bootstrap）类加载器、扩展（Extension）类加载器、应用（Application）类加载器。除了启动类">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/03/10/3dFXlmWo8qkSK5B.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/10/6qNjtc7yzGYh9BI.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/10/H3dQKvGlLbXC7yr.png">
+<meta property="article:published_time" content="2020-03-18T05:45:03.000Z">
+<meta property="article:modified_time" content="2024-02-14T11:20:05.037Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="jvm">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/03/10/3dFXlmWo8qkSK5B.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2020/03/18/jvm/JVM%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E5%92%8C%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%9C%BA%E5%88%B6/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-jvm/JVM类加载器和双亲委派机制" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      JVM 类加载器和双亲委派机制
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2020/03/18/jvm/JVM%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E5%92%8C%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%9C%BA%E5%88%B6/" class="article-date">
+	  <time datetime="2020-03-18T05:45:03.000Z" itemprop="datePublished">2020-03-18</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/jvm/">jvm</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/jvm/" rel="tag">jvm</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2020/03/18/jvm/JVM%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E5%92%8C%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%9C%BA%E5%88%B6/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="JVM-类加载器和双亲委派机制"><a href="#JVM-类加载器和双亲委派机制" class="headerlink" title="JVM 类加载器和双亲委派机制"></a>JVM 类加载器和双亲委派机制</h1><h2 id="类加载器"><a href="#类加载器" class="headerlink" title="类加载器"></a>类加载器</h2><p>Java 虚拟机的类加载有三大步骤：加载，链接，初始化。其中加载是指查找字节流（也就是由 Java 编译器生成的 class 文件）并据此创建类的过程，这中间我们需要借助类加载器来查找字节流。Java 虚拟机提供了 3 种类加载器，分别是：启动（Bootstrap）类加载器、扩展（Extension）类加载器、应用（Application）类加载器。除了启动类加载器外，其他的类加载器都是<code>java.lang.ClassLoader</code>的子类。</p>
+<ul>
+<li><strong>1）启动类&#x2F;引导类加载器：Bootstrap ClassLoader</strong></li>
+</ul>
+<p>启动类加载器，也叫根类加载器。这个类加载器使用 C&#x2F;C++ 语言实现的，嵌套在 JVM 内部，java 程序无法直接操作这个类。它用来加载 Java 核心类库，如：<code>JAVA_HOME/jre/lib/rt.jar</code>、<code>resources.jar</code>、<code>sun.boot.class.path</code>路径下的包，用于提供 jvm 运行所需的包。</p>
+<p>启动类加载器比较特殊，它不是<code>java.lang.ClassLoader</code>的子类，它没有父类加载器。它加载扩展类加载器和应用程序类加载器，并成为他们的父类加载器。</p>
+<p>出于安全考虑，启动类只加载包名为：<code>java</code>、<code>javax</code>、<code>sun</code>开头的类。</p>
+<ul>
+<li><strong>2）扩展类加载器：Extension ClassLoader</strong></li>
+</ul>
+<p>Java 语言编写，由<code>sun.misc.Launcher$ExtClassLoader</code>实现，派生继承自<code>java.lang.ClassLoader</code>，父类加载器为启动类加载器。</p>
+<p>负责加载扩展目录 (<code>%JAVA_HOME%/jre/lib/ext</code>) 下的<code>jar</code>包，用户可以把自己开发的类打包成<code>jar</code>包放在这个目录下即可扩展核心类以外的新功能。</p>
+<ul>
+<li><strong>3）应用程序类加载器：Application Classloader</strong></li>
+</ul>
+<p>Java 语言编写，由<code>sun.misc.Launcher$AppClassLoader</code>实现，派生继承自<code>java.lang.ClassLoader</code>，父类加载器为启动类加载器。负责加载<code>CLASSPATH</code>环境变量所指定的<code>jar</code>包与类路径。一般来说，用户自定义的类就是由<code>APP ClassLoader</code>加载的。开发者可以直接使用该类加载器，如果应用程序中没有自定义过自己的类加载器，一般情况下这个就是程序中默认的类加载器。</p>
+<p>应用程序都是由以上三种类加载器互相配合进行加载的。如果有需要，我们也可以自定义类加载器。因为 JVM 自带的 ClassLoader 只能从本地文件系统加载标准的 class 文件，如果编写了自己的 ClassLoader，便可以做到如下几点：</p>
+<p>1）在执行代码之前，自动验证数字签名。</p>
+<p>2）动态地创建符合用户特定需要的定制化构建类。</p>
+<p>3）从特定的场所取得 java class，例如数据库中和网络中。</p>
+<ul>
+<li><strong>JVM 类加载机制</strong></li>
+</ul>
+<p>1）全盘负责。当一个类加载器负责加载某个<code>Class</code>时，该<code>Class</code>所依赖的和引用的其他<code>Class</code>也将由该类加载器负责载入，除非显示使用另外一个类加载器来载入。</p>
+<p>2）父类委托。先让父类加载器试图加载该类，只有在父类加载器无法加载该类时才尝试从自己的类路径中加载该类。</p>
+<p>3）缓存机制。缓存机制将会保证所有加载过的<code>Class</code>都会被缓存，当程序中需要使用某个<code>Class</code>时，类加载器先从缓存区寻找该<code>Class</code>，只有缓存区不存在，系统才会读取该类对应的二进制数据，并将其转换成<code>Class</code>对象，存入缓存区。这就是为什么修改了<code>Class</code>后，必须重启<code>JVM</code>，程序的修改才会生效。</p>
+<h2 id="类加载方式"><a href="#类加载方式" class="headerlink" title="类加载方式"></a>类加载方式</h2><p>类加载有三种方式：</p>
+<p>1）命令行启动应用时候由 JVM 初始化加载；</p>
+<p>2）通过<code>Class.forName()</code>方法动态加载；</p>
+<p>3）通过<code>ClassLoader.loadClass()</code>方法动态加载。</p>
+<p>例子：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.neo.classloader;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">loaderTest</span> &#123; </span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> ClassNotFoundException &#123; </span><br><span class="line">                <span class="type">ClassLoader</span> <span class="variable">loader</span> <span class="operator">=</span> HelloWorld.class.getClassLoader(); </span><br><span class="line">                System.out.println(loader); </span><br><span class="line">            </span><br><span class="line">                <span class="comment">//使用ClassLoader.loadClass()来加载类，不会执行初始化块 </span></span><br><span class="line">                loader.loadClass(<span class="string">&quot;Test&quot;</span>); </span><br><span class="line">            </span><br><span class="line">                <span class="comment">//使用Class.forName()来加载类，默认会执行初始化块 </span></span><br><span class="line">                Class.forName(<span class="string">&quot;Test&quot;</span>); </span><br><span class="line">            </span><br><span class="line">                <span class="comment">//使用Class.forName()来加载类，并指定ClassLoader，初始化时不执行静态块 </span></span><br><span class="line">                Class.forName(<span class="string">&quot;Test&quot;</span>, <span class="literal">false</span>, loader); </span><br><span class="line">        &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Test 类代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123; </span><br><span class="line">    <span class="keyword">static</span> &#123; </span><br><span class="line">        System.out.println(<span class="string">&quot;静态初始化块执行了！&quot;</span>); </span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>分别切换加载方式，会有不同的输出结果。</p>
+<p><code>Class.forName()</code>和<code>ClassLoader.loadClass()</code>区别：</p>
+<p>1）<code>Class.forName()</code>：将类的<code>.class</code>文件加载到<code>JVM</code>中之外，还会对类进行解释，执行类中的<code>static</code>块；</p>
+<p>2）<code>ClassLoader.loadClass()</code>：只干一件事情，就是将.class文件加载到 JVM 中，不会执行<code>static</code>中的内容,只有在<code>newInstance</code>才会去执行<code>static</code>块。</p>
+<p>3）<code>Class.forName(name, initialize, loader)</code>带参函数也可控制是否加载<code>static</code>块。并且只有调用了<code>newInstance()</code>方法采用调用构造函数，创建类的对象 。</p>
+<h2 id="双亲委派机制"><a href="#双亲委派机制" class="headerlink" title="双亲委派机制"></a>双亲委派机制</h2><p>JVM 对<code>class</code>文件采用的是按需加载的方式，当需要使用该类时，JVM 才会将它的<code>class</code>文件加载到内存中产生<code>class</code>对象。</p>
+<p>在加载类的时候，是采用的双亲委派机制，即把请求交给父类处理的一种任务委派模式。</p>
+<p><img src="https://i.loli.net/2021/03/10/3dFXlmWo8qkSK5B.png" alt="0.png"></p>
+<ul>
+<li><strong>工作原理</strong></li>
+</ul>
+<p>1）如果一个类加载器接收到了类加载请求，它自己不会先去加载，而是把这个请求委托给父类加载器去执行。</p>
+<p>2）如果父类还存在父类加载器，则继续向上委托，一直委托到启动类加载器：<code>Bootstrap ClassLoader</code>。</p>
+<p>3）如果父类加载器可以完成加载任务，就返回成功结果；如果父类加载失败，则由子类自己去尝试加载，如果子类加载失败就会抛出<code>ClassNotFoundException</code>异常，这就是双亲委派模式。</p>
+<p>我们来看<code>ClassLoader</code>中<code>loadClass</code>方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> Class&lt;?&gt; loadClass(String name, <span class="type">boolean</span> resolve)</span><br><span class="line">        <span class="keyword">throws</span> ClassNotFoundException</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">synchronized</span> (getClassLoadingLock(name)) &#123;</span><br><span class="line">            <span class="comment">// 首先判断类是否已加载过，加载过就直接返回</span></span><br><span class="line">            Class&lt;?&gt; c = findLoadedClass(name);</span><br><span class="line">            <span class="keyword">if</span> (c == <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="type">long</span> <span class="variable">t0</span> <span class="operator">=</span> System.nanoTime();</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    <span class="keyword">if</span> (parent != <span class="literal">null</span>) &#123;</span><br><span class="line">                        <span class="comment">//有父类加载器，调用父加载器的loadClass</span></span><br><span class="line">                        c = parent.loadClass(name, <span class="literal">false</span>);</span><br><span class="line">                    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                        <span class="comment">//调用Bootstrap Classloader</span></span><br><span class="line">                        c = findBootstrapClassOrNull(name);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</span><br><span class="line">                    <span class="comment">// ClassNotFoundException thrown if class not found</span></span><br><span class="line">                    <span class="comment">// from the non-null parent class loader</span></span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (c == <span class="literal">null</span>) &#123;</span><br><span class="line">                    <span class="type">long</span> <span class="variable">t1</span> <span class="operator">=</span> System.nanoTime();</span><br><span class="line">                    <span class="comment">//到自己指定类加载路径下查找是否有class字节码</span></span><br><span class="line">                    c = findClass(name);</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// this is the defining class loader; record the stats</span></span><br><span class="line">                    sun.misc.PerfCounter.getParentDelegationTime().addTime(t1 - t0);</span><br><span class="line">                    sun.misc.PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);</span><br><span class="line">                    sun.misc.PerfCounter.getFindClasses().increment();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (resolve) &#123;</span><br><span class="line">                resolveClass(c);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> c;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种加载方式可以<strong>避免类的重复加载，当父亲已经加载了该类时，就没有必要子类加载器再加载一次</strong>。其次也考虑到安全因素，比如我们自己写的一个<code>java.lang.String</code>的类，通过双亲委派机制传递到启动类加载器，而启动类加载器在核心<code>Java API</code>发现这个名字的类，发现该类已被加载，并不会重新加载我们新写的<code>java.lang.String</code>，而直接返回已加载过的<code>String.class</code>，这样保证生成的对象是同一种类型。</p>
+<h2 id="自定义类加载器"><a href="#自定义类加载器" class="headerlink" title="自定义类加载器"></a>自定义类加载器</h2><p>通常情况下，我们都是直接使用 JVM 提供的类加载器。但某些情况下，我们需要自定义类加载器。比如应用是通过网络来传输 Java 类的字节码，为保证安全性，这些字节码经过了加密处理，这时系统类加载器就无法对其进行加载，这样则需要自定义类加载器来实现。</p>
+<p>自定义一个<code>Person</code>类，代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Person</span> &#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="type">int</span> age;</span><br><span class="line">  <span class="keyword">private</span> String name;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//省略getter/setter方法</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>测试代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="type">Person</span> <span class="variable">person</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Person</span>();</span><br><span class="line">    System.out.println(<span class="string">&quot;person是由&quot;</span> + person.getClass().getClassLoader() + <span class="string">&quot;加载的&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行结果如下：<br><img src="https://i.loli.net/2021/03/10/6qNjtc7yzGYh9BI.png" alt="1.png"></p>
+<p>然后把<code>Person.class</code>放置在其他目录下</p>
+<p><img src="https://i.loli.net/2021/03/10/H3dQKvGlLbXC7yr.png" alt="2.png"></p>
+<p>再运行测试代码，发现会抛出<code>ClassNotFoundException</code>异常，因为在指定路径下查找不到<code>class</code>文件。</p>
+<p>现在，我们自定义一个类加载器，负责加载<code>Person</code>类。我们只需要继承<code>ClassLoader</code>并重写<code>findClass</code>方法即可，这里面写查找字节码的逻辑。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">PersonClassLoader</span> <span class="keyword">extends</span> <span class="title class_">ClassLoader</span> &#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> String classPath;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">public</span> <span class="title function_">PersonClassLoader</span><span class="params">(String classPath)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.classPath = classPath;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="type">byte</span>[] loadByte(String name) <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    name = name.replaceAll(<span class="string">&quot;\\.&quot;</span>, <span class="string">&quot;/&quot;</span>);</span><br><span class="line">    <span class="type">FileInputStream</span> <span class="variable">fis</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(classPath + <span class="string">&quot;/&quot;</span> + name</span><br><span class="line">        + <span class="string">&quot;.class&quot;</span>);</span><br><span class="line">    <span class="type">int</span> <span class="variable">len</span> <span class="operator">=</span> fis.available();</span><br><span class="line">    <span class="type">byte</span>[] data = <span class="keyword">new</span> <span class="title class_">byte</span>[len];</span><br><span class="line">    fis.read(data);</span><br><span class="line">    fis.close();</span><br><span class="line">    <span class="keyword">return</span> data;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">protected</span> Class&lt;?&gt; findClass(String name) <span class="keyword">throws</span> ClassNotFoundException &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="type">byte</span>[] data = loadByte(name);</span><br><span class="line">      <span class="keyword">return</span> defineClass(name, data, <span class="number">0</span>, data.length);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      e.printStackTrace();</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">ClassNotFoundException</span>();</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>测试类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="type">PersonClassLoader</span> <span class="variable">classLoader</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">PersonClassLoader</span>(<span class="string">&quot;/home/shenxinjian&quot;</span>);</span><br><span class="line">    Class&lt;?&gt; pClass = classLoader.loadClass(<span class="string">&quot;com.test.classloading.demo.Person&quot;</span>);</span><br><span class="line">    System.out.println(<span class="string">&quot;person是由&quot;</span> + pClass.getClassLoader() + <span class="string">&quot;类加载器加载的&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>自定义类加载器的核心在于对字节码文件的获取，如果是加密的字节码则需要在该类中对文件进行解密。这里的测试代码并未对<code>class</code>文件进行加密，因此没有解密的过程。这里需要注意：</p>
+<p>1）这里传递的文件名需要是类的全限定性名称，即<code>com.test.classloading.demo.Person </code>格式的，因为<code>defineClass</code>方法是按这种格式进行处理的。</p>
+<p>2）最好不要重写<code>loadClass</code>方法，因为这样容易破坏双亲委托模式。</p>
+<p>3）<code>Person</code>类本身可以被 <code>AppClassLoader</code>类加载，因此我们不能把<code>com/test/classloading/demo/Person.class</code>放在类路径下。否则，由于双亲委托机制的存在，会直接导致该类由<code>AppClassLoader</code>加载，而不会通过我们自定义类加载器来加载。</p>
+<ul>
+<li><strong>自定义类加载器作用</strong></li>
+</ul>
+<p>1）当<code>class</code>文件不在<code>classPath</code>路径下，如上面那种情况，默认系统类加载器无法找到该<code>class</code>文件，在这种情况下我们需要实现一个自定义的<code>classLoader</code>来加载特定路径下的<code>class</code>文件来生成<code>class</code>对象。</p>
+<p>2）当一个<code>class</code>文件是通过网络传输并且可能会进行相应的加密操作时，需要先对<code>class</code>文件进行相应的解密后再加载到 JVM 内存中，这种情况下也需要编写自定义的<code>ClassLoader</code>并实现相应的逻辑。</p>
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2020/03/18/docker/docker%E9%83%A8%E7%BD%B2nexus%E7%A7%81%E6%9C%89%E4%BB%93%E5%BA%93/" title="docker部署nexus私有仓库"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2020/03/17/jvm/JVM%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6/" title="JVM 类加载机制"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

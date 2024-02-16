@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>自定义注解 | Hexo</title>
+  <meta name="description" content="自定义注解注解定义Java 注解又称 Java 标注，是 JDK 5.0 版本开始支持加入源代码的特殊语法元数据。Java 注解是附加在代码中的一些元信息，用于一些工具在编译、运行时进行解析和使用，起到说明、配置的功能。注解不会也不能影响代码的实际逻辑，仅仅起到辅助性的作用。 Java 语言中的类、方法、变量、参数和包等都可以被标注。和Javadoc不同，Java 标注可以通过反射获取标注内容。在">
+<meta property="og:type" content="article">
+<meta property="og:title" content="自定义注解">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2018/11/23/java_others/%E8%87%AA%E5%AE%9A%E4%B9%89%E6%B3%A8%E8%A7%A3/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="自定义注解注解定义Java 注解又称 Java 标注，是 JDK 5.0 版本开始支持加入源代码的特殊语法元数据。Java 注解是附加在代码中的一些元信息，用于一些工具在编译、运行时进行解析和使用，起到说明、配置的功能。注解不会也不能影响代码的实际逻辑，仅仅起到辅助性的作用。 Java 语言中的类、方法、变量、参数和包等都可以被标注。和Javadoc不同，Java 标注可以通过反射获取标注内容。在">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/03/16/9PFydARoc7YU4Tn.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/16/DEN83RJjZnGfOtp.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/16/kbYwgCUh67RT2sE.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/16/6xfJ9ehRuLEWGF2.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/16/foed7qPzCXVabOu.png">
+<meta property="article:published_time" content="2018-11-23T14:06:21.000Z">
+<meta property="article:modified_time" content="2024-02-14T09:59:33.162Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="java">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/03/16/9PFydARoc7YU4Tn.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2018/11/23/java_others/%E8%87%AA%E5%AE%9A%E4%B9%89%E6%B3%A8%E8%A7%A3/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-java_others/自定义注解" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      自定义注解
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2018/11/23/java_others/%E8%87%AA%E5%AE%9A%E4%B9%89%E6%B3%A8%E8%A7%A3/" class="article-date">
+	  <time datetime="2018-11-23T14:06:21.000Z" itemprop="datePublished">2018-11-23</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/java/">java</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/java/" rel="tag">java</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2018/11/23/java_others/%E8%87%AA%E5%AE%9A%E4%B9%89%E6%B3%A8%E8%A7%A3/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="自定义注解"><a href="#自定义注解" class="headerlink" title="自定义注解"></a>自定义注解</h1><h2 id="注解定义"><a href="#注解定义" class="headerlink" title="注解定义"></a>注解定义</h2><p>Java 注解又称 Java 标注，是 JDK 5.0 版本开始支持加入源代码的特殊语法元数据。Java 注解是附加在代码中的一些元信息，用于一些工具在编译、运行时进行解析和使用，起到说明、配置的功能。注解不会也不能影响代码的实际逻辑，仅仅起到辅助性的作用。</p>
+<p>Java 语言中的类、方法、变量、参数和包等都可以被标注。和<code>Javadoc</code>不同，Java 标注可以通过反射获取标注内容。在编译器生成类文件时，标注可以被嵌入到字节码中。Java 虚拟机可以保留标注内容，在运行时可以获取到标注内容。 当然，它也支持自定义 Java 标注。Java 注解包含在<code>java.lang.annotation</code>包中。</p>
+<h2 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h2><p>1）生成文档。这是最常见的，也是 Java 最早提供的注解。常用的有<code>@param</code>、<code>@return</code>等；</p>
+<p>2）代码分析。实现替代配置文件功能。比如<code>Dagger 2</code>依赖注入，Java 开发将大量注解配置，具有很大用处;</p>
+<p>3）编译检查。如<code>@override</code>放在方法前，如果这个方法并不是覆盖了超类方法，则编译时就能检查出；</p>
+<p>4）自定义注解+拦截器或者<code>AOP</code>。使用自定义注解来设计框架，使得代码更简单、优雅。</p>
+<h2 id="元注解"><a href="#元注解" class="headerlink" title="元注解"></a>元注解</h2><p>元注解的作用就是负责注解其他注解，也就是说如果要自定义注解的话，就得使用元注解来修饰说明。Java 5.0 定义了4个标准的<code>meta-annotation</code>类型，它们被用来提供对其它<code>annotation</code>类型作说明。Java5.0 定义的元注解：</p>
+<p>@Target，描述注解的使用范围；</p>
+<p>@Retention，描述注解的生命周期；</p>
+<p>@Documented，描述生成到<code>Javadoc</code>文档中；</p>
+<p>@Inherited，描述可以被子类继承；</p>
+<p>这些类型和它们所支持的类在<code>java.lang.annotation</code>包中可以找到。</p>
+<ul>
+<li><strong>@Target 注解</strong></li>
+</ul>
+<p>@Target 说明了<code>Annotation</code>所修饰的对象范围。<code>Annotation</code>可被用于<code>packages</code>、<code>types</code>（类、接口、枚举、<code>Annotation</code>类型）、类型成员（方法、构造方法、成员变量、枚举值）、方法参数和本地变量（如循环变量、<code>catch</code>参数）。在<code>Annotation</code>类型的声明中使用了<code>@target</code>可以更加明确修饰的目标。</p>
+<p><strong>作用：用于描述注解的使用范围</strong>，<code>ElementType</code>取值有：</p>
+<p><code>ElementType.TYPE</code>：类或接口；</p>
+<p><code>ElementType.FIELD</code>：字段；</p>
+<p><code>ElementType.METHOD</code>：方法；</p>
+<p><code>ElementType.CONSTRUCTOR</code>：构造方法；</p>
+<p><code>ElementType.PARAMETER</code>：方法参数；</p>
+<p><code>ElementType.LOCAL_VARIABLE</code>：局部变量；</p>
+<p><code>ElementType.PACKAGE</code>：包。</p>
+<p>实例代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target(ElementType.TYPE)</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Table &#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 数据表名称注解，默认值为类名称</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">tableName</span><span class="params">()</span> <span class="keyword">default</span> <span class="string">&quot;className&quot;</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Target(ElementType.FIELD)</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> NoDBColumn &#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注解<code>Table</code>可以用于注解类、接口(包括注解类型) 或<code>enum</code>声明，而注解<code>NoDBColumn</code>仅可用于注解类的成员变量。</p>
+<hr>
+<ul>
+<li><strong>@Retention注解</strong></li>
+</ul>
+<p><code>@Retention</code>定义了该<code>Annotation</code>被保留的时间长短。某些<code>Annotation</code>仅出现在源代码中，而被编译器丢弃；而另一些却被编译在<code>class</code>文件中；编译在<code>class</code>文件中的<code>Annotation</code>可能会被虚拟机忽略；还有一些在<code>class</code>被装载时将被读取（并不影响<code>class</code>的执行，因为<code>Annotation</code>与<code>class</code>在使用上是分离的）。使用这个<code>meta-Annotation</code>可以对<code>Annotation</code>的生命周期进行限制。</p>
+<p><strong>作用：用于描述注解的生命周期</strong>（即：被描述的注解在什么阶段有效），<code>RetentionPoicy</code>取值有：</p>
+<p><code>RetentionPoicy.SOURCE</code>：在源文件中有效（即源文件保留）</p>
+<p><code>RetentionPoicy.CLASS</code>：在class文件中有效（即 class 保留）</p>
+<p><code>RetentionPoicy.RUNTIME</code>：在运行时有效（即运行时保留）</p>
+<p>如果<code>@Retention</code>不存在，则该<code>Annotation </code>默认为<code>CLASS</code>。通常我们自定义的<code>Annotation</code>都是<code>RUNTIME</code>。所以，使用时务必要加上<code>@Retention(RetentionPolicy.RUNTIME)</code>元注解。</p>
+<p>实例代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target(ElementType.FIELD)</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Column &#123;</span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">name</span><span class="params">()</span> <span class="keyword">default</span> <span class="string">&quot;fieldName&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">setFuncName</span><span class="params">()</span> <span class="keyword">default</span> <span class="string">&quot;setField&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getFuncName</span><span class="params">()</span> <span class="keyword">default</span> <span class="string">&quot;getField&quot;</span>; </span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">defaultDBValue</span><span class="params">()</span> <span class="keyword">default</span> <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Column</code>注解的<code>RetentionPolicy</code>的属性值是<code>RUTIME</code>。这样可以通过反射，获取到该注解的属性值，去做一些运行时需要处理的业务逻辑。</p>
+<hr>
+<ul>
+<li><strong>@Documented注解</strong></li>
+</ul>
+<p><code>@Documented</code>用于描述应该被作为被标注的程序成员的公共<code>API</code>，是被用来指定自定义注解是否能<strong>随着被定义的<code>Java</code>文件生成到<code>JavaDoc</code>文档当中</strong>。<code>@Documented</code>是一个标记注解，没有成员。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target(ElementType.FIELD)</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Column &#123;</span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">name</span><span class="params">()</span> <span class="keyword">default</span> <span class="string">&quot;fieldName&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">setFuncName</span><span class="params">()</span> <span class="keyword">default</span> <span class="string">&quot;setField&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getFuncName</span><span class="params">()</span> <span class="keyword">default</span> <span class="string">&quot;getField&quot;</span>; </span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">defaultDBValue</span><span class="params">()</span> <span class="keyword">default</span> <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<ul>
+<li><strong>@Inherited注解</strong></li>
+</ul>
+<p><code>@Inherited</code>元注解是一个标记注解，<code>@Inherited</code>阐述了<strong>某个被标注的类型是可以被继承的</strong>。如果一个使用了<code>@Inherited</code>修饰的<code>annotation</code>类型被用于一个<code>class</code>，则这个<code>annotation</code>将被用于该<code>class</code>的子类。</p>
+<p>注意：<code>@Inherited annotation</code>类型是被标注过的<code>class</code>的子类所继承。类并不从它所实现的接口继承<code>annotation</code>，方法也不从它所重载的方法继承<code>annotation</code>。<code>@Inherited</code>仅针对<code>@Target(ElementType.TYPE)</code>类型的<code>annotation</code>有效，并且仅针对<code>class</code>的继承，对<code>interface</code>的继承无效。</p>
+<p>实例代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Inherited</span></span><br><span class="line"><span class="meta">@Target(ElementType.TYPE)</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Report &#123;</span><br><span class="line">    <span class="type">int</span> <span class="title function_">type</span><span class="params">()</span> <span class="keyword">default</span> <span class="number">0</span>;</span><br><span class="line">    String <span class="title function_">level</span><span class="params">()</span> <span class="keyword">default</span> <span class="string">&quot;info&quot;</span>;</span><br><span class="line">    String <span class="title function_">value</span><span class="params">()</span> <span class="keyword">default</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="自定义注解-1"><a href="#自定义注解-1" class="headerlink" title="自定义注解"></a>自定义注解</h2><p>使用<code>@interface</code>自定义注解时，自动继承了<code>java.lang.annotation.Annotation</code>接口，由编译程序自动完成其他细节。在定义注解时，不能继承其他的注解或接口。<code>@interface</code>用来声明一个注解，其中的每一个方法实际上是声明了一个配置参数。方法的名称就是参数的名称，返回值类型就是参数的类型（返回值类型只能是基本类型、<code>Class</code>、<code>String</code>、<code>Enum</code>）。可以通过<code>default</code>来声明参数的默认值。</p>
+<ul>
+<li><strong>自定义注解格式：</strong></li>
+</ul>
+<p><em>public  @interface  注解名  {定义体}</em></p>
+<ul>
+<li><strong>自定义注解参数数据类型：</strong></li>
+</ul>
+<p>1）所有基本数据类型（<code>int</code>，<code>float</code>，<code>boolean</code>，<code>byte</code>，<code>double</code>，<code>char</code>，<code>long</code>，<code>short</code>)</p>
+<p>2）<code>String</code>类型</p>
+<p>3）<code>Class</code>类型</p>
+<p>4）<code>enum</code>类型</p>
+<p>5）<code>Annotation</code>类型</p>
+<p>6）以上所有类型的数组</p>
+<ul>
+<li><strong>自定义注解参数设定：</strong></li>
+</ul>
+<p>1）只能用<code>public</code>或默认(<code>default</code>) 这两个访问权修饰。例如，<code>String value()</code>；这里把方法设为<code>default</code>默认类型；</p>
+<p>2）参数成员只能用八种基本数据类型和<code>String</code>，<code>Enum</code>，<code>Class</code>，<code>annotations</code>等数据类型，以及这一些类型的数组。例如，<code>String value()</code>; 这里的参数成员就为<code>String</code>；　　</p>
+<p>3）如果只有一个参数成员，最好把参数名称设为”<code>value()</code>“。</p>
+<ul>
+<li><strong>使用实例</strong></li>
+</ul>
+<p>先自定义一个注解，代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target(ElementType.FIELD)</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> MyField &#123;</span><br><span class="line">    String <span class="title function_">description</span><span class="params">()</span>;</span><br><span class="line">    <span class="type">int</span> <span class="title function_">length</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过反射获取注解信息，代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MyFieldTest</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//使用自定义注解</span></span><br><span class="line">    <span class="meta">@MyField(description = &quot;用户名&quot;, length = 12)</span></span><br><span class="line">    <span class="keyword">private</span> String username;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testMyField</span><span class="params">()</span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 获取类模板</span></span><br><span class="line">        <span class="type">Class</span> <span class="variable">c</span> <span class="operator">=</span> MyFieldTest.class;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 获取所有字段</span></span><br><span class="line">        <span class="keyword">for</span>(Field f : c.getDeclaredFields())&#123;</span><br><span class="line">            <span class="comment">// 判断这个字段是否有MyField注解</span></span><br><span class="line">            <span class="keyword">if</span>(f.isAnnotationPresent(MyField.class))&#123;</span><br><span class="line">                <span class="type">MyField</span> <span class="variable">annotation</span> <span class="operator">=</span> f.getAnnotation(MyField.class);</span><br><span class="line">                System.out.println(<span class="string">&quot;字段:[&quot;</span> + f.getName() + <span class="string">&quot;], 描述:[&quot;</span> + annotation.description() + <span class="string">&quot;], 长度:[&quot;</span> + annotation.length() +<span class="string">&quot;]&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个例子简单地说明了自定义注解使用方法。但是在实际项目中，可能有很多类都使用了自定义注解，而我们不知道是具体哪个类或者哪个方法使用了自定义注解。所以，一般可以通过<code>SpringMVC</code>的拦截器或者<code>Spring AOP</code>方式获取添加了注解的方法，在拦截器或者<code>AOP</code>的通知里对注解进行处理。</p>
+<h2 id="应用实例"><a href="#应用实例" class="headerlink" title="应用实例"></a>应用实例</h2><ul>
+<li><strong>实例一：自定义注解 + 拦截器实现登陆校验</strong></li>
+</ul>
+<p>使用<code>springmvc</code>拦截器实现这样一个功能，如果方法上加了<code>@LoginRequired</code>注解，则提示用户该接口需要登录才能访问，否则正常访问。 首先定义一个<code>LoginRequired</code>注解。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target(ElementType.METHOD)</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> LoginRequired &#123;</span><br><span class="line">    <span class="type">boolean</span> <span class="title function_">value</span><span class="params">()</span> <span class="keyword">default</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后写一个拦截器，负责拦截用户请求，进行登录判断，代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">LoginIntercepter</span> <span class="keyword">implements</span> <span class="title class_">HandlerInterceptor</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">preHandle</span><span class="params">(HttpServletRequest request, HttpServletResponse response, Object handler)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;开始登陆校验...&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (handler <span class="keyword">instanceof</span> HandlerMethod) &#123;</span><br><span class="line">            <span class="comment">// 反射获取方法上的LoginRequred注解</span></span><br><span class="line">            <span class="type">HandlerMethod</span> <span class="variable">handlerMethod</span> <span class="operator">=</span> (HandlerMethod) handler;</span><br><span class="line">            <span class="type">LoginRequired</span> <span class="variable">loginRequired</span> <span class="operator">=</span> handlerMethod.getMethod().getAnnotation(LoginRequired.class);</span><br><span class="line">            <span class="comment">// 有LoginRequired注解</span></span><br><span class="line">            <span class="keyword">if</span> (loginRequired != <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="comment">// 需要登录，提示用户登录</span></span><br><span class="line">                response.setContentType(<span class="string">&quot;application/json; charset=utf-8&quot;</span>);</span><br><span class="line">                response.getWriter().print(<span class="string">&quot;请先登陆！&quot;</span>);</span><br><span class="line">                <span class="comment">// 返回false，流程中断</span></span><br><span class="line">                <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">		<span class="comment">// 返回true，继续流程</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">postHandle</span><span class="params">(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">afterCompletion</span><span class="params">(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>创建配置类将拦截器注册到拦截器链中，代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">IntercepterConfigurer</span> <span class="keyword">implements</span> <span class="title class_">WebMvcConfigurer</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">addInterceptors</span><span class="params">(InterceptorRegistry registry)</span> &#123;</span><br><span class="line">        registry.addInterceptor(<span class="keyword">new</span> <span class="title class_">LoginIntercepter</span>()).addPathPatterns(<span class="string">&quot;/**&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>再写一个测试用的<code>Controller</code>，有 3 个方法，分别如下：</p>
+<p><code>testA()</code>方法不加<code>@LoginRequired</code>注解；</p>
+<p><code>testB()</code>方法加<code>@LoginRequired</code>注解，但<code>value = false</code>；</p>
+<p><code>testC()</code>方法加<code>@LoginRequired</code>注解，但<code>value = true</code>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestController</span> &#123;</span><br><span class="line">    <span class="meta">@GetMapping(&quot;/testa&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">testA</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;test A&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@LoginRequired(value = false)</span></span><br><span class="line">    <span class="meta">@GetMapping(&quot;/testb&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">testB</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;test B&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@LoginRequired(value = true)</span></span><br><span class="line">    <span class="meta">@GetMapping(&quot;/testc&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">testC</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;test C&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>启动服务，打开浏览器分别访问 A、B、C 三个接口，结果如下：</p>
+<p><img src="https://i.loli.net/2021/03/16/9PFydARoc7YU4Tn.png" alt="0.png"></p>
+<p><code>testA</code>方法没有加<code>@LoginRequired</code>注解，所以正常返回；</p>
+<p><img src="https://i.loli.net/2021/03/16/DEN83RJjZnGfOtp.png" alt="1.png"></p>
+<p><code>testB</code>方法加了<code>@LoginRequired</code> 注解，但<code>value</code>值为<code>false</code>，所以正常返回；</p>
+<p><img src="https://i.loli.net/2021/03/16/kbYwgCUh67RT2sE.png" alt="2.png"></p>
+<p><code>testC</code>方法加了<code>@LoginRequired</code> 注解，<code>value</code>值设为<code>true</code>，所以提示登录验证；</p>
+<hr>
+<ul>
+<li><strong>实例二：自定义注解 + AOP 实现日志打印</strong></li>
+</ul>
+<p>导入切面编程需要的依赖包</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">      &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</span><br><span class="line">     &lt;artifactId&gt;spring-boot-starter-aop&lt;/artifactId&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<p>定义一个注解<code>@MyLog</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target(ElementType.METHOD)</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> MyLog &#123;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>定义一个切面类，代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Aspect</span> <span class="comment">// 切面类</span></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MyLogAspect</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// PointCut表示这是一个切点，@annotation表示这个切点定义到一个注解上，后面带该注解的全类名</span></span><br><span class="line">    <span class="comment">// 切面最重要的就是切点，所有的都围绕切点发生</span></span><br><span class="line">    <span class="comment">// logPointCut()代表切点名称</span></span><br><span class="line">    <span class="meta">@Pointcut(&quot;@annotation(com.alanotes.demo.annotation.aop.MyLog)&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">logPointCut</span><span class="params">()</span>&#123;&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 环绕通知</span></span><br><span class="line">    <span class="meta">@Around(&quot;logPointCut()&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">logAround</span><span class="params">(ProceedingJoinPoint joinPoint)</span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 获取方法名称</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">methodName</span> <span class="operator">=</span> joinPoint.getSignature().getName();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 获取入参</span></span><br><span class="line">        Object[] param = joinPoint.getArgs();</span><br><span class="line"></span><br><span class="line">        <span class="type">StringBuilder</span> <span class="variable">sb</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuilder</span>();</span><br><span class="line">        <span class="keyword">for</span>(Object o : param)&#123;</span><br><span class="line">            sb.append(o + <span class="string">&quot;; &quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(<span class="string">&quot;执行：&quot;</span> + methodName + <span class="string">&quot;方法，参数：&quot;</span> + sb.toString());</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 继续执行方法</span></span><br><span class="line">        <span class="type">Object</span> <span class="variable">result</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            result =  joinPoint.proceed();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable throwable) &#123;</span><br><span class="line">            throwable.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(methodName + <span class="string">&quot;方法执行结束&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>创建一个<code>Controller</code>，定义一个<code>testD</code>方法测试，代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestAopController</span> &#123;</span><br><span class="line">    <span class="meta">@MyLog</span></span><br><span class="line">    <span class="meta">@GetMapping(&quot;/testd/&#123;param&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">testD</span><span class="params">(<span class="meta">@PathVariable(&quot;param&quot;)</span> String param)</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;test D&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>启动<code>springboot</code>服务，访问接口</p>
+<p><img src="https://i.loli.net/2021/03/16/6xfJ9ehRuLEWGF2.png" alt="3.png"></p>
+<p>接口正常返回，查看控制台，打印日志如下：</p>
+<p><img src="https://i.loli.net/2021/03/16/foed7qPzCXVabOu.png" alt="4.png"></p>
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2018/12/03/java_others/Java%E5%9B%9E%E8%B0%83%E6%9C%BA%E5%88%B6/" title="Java回调机制"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2018/11/12/java_others/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E4%B8%8E%E6%B5%85%E6%8B%B7%E8%B4%9D/" title="深拷贝与浅拷贝"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

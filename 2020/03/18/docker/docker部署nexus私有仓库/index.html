@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>docker部署nexus私有仓库 | Hexo</title>
+  <meta name="description" content="docker部署nexus私有仓库简介最近项目需要对接银行系统，对方提供了一些jar包，这些三方jar是没有上传到中央仓库的，所以无法直接在maven中依赖，因此决定搭建一个Maven私服来处理。maven仓库的使用结构如下图：  通常，我们开发项目并没有使用到虚线标识的那两部分，基本都是通过本机的Maven直接访问中央仓库，下载jar包到本地仓库。现在我们需要搭建中间虚线部分。 docker安装">
+<meta property="og:type" content="article">
+<meta property="og:title" content="docker部署nexus私有仓库">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2020/03/18/docker/docker%E9%83%A8%E7%BD%B2nexus%E7%A7%81%E6%9C%89%E4%BB%93%E5%BA%93/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="docker部署nexus私有仓库简介最近项目需要对接银行系统，对方提供了一些jar包，这些三方jar是没有上传到中央仓库的，所以无法直接在maven中依赖，因此决定搭建一个Maven私服来处理。maven仓库的使用结构如下图：  通常，我们开发项目并没有使用到虚线标识的那两部分，基本都是通过本机的Maven直接访问中央仓库，下载jar包到本地仓库。现在我们需要搭建中间虚线部分。 docker安装">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/hpIPe8K5FZV2bGr.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/3SrTRk96DUbB8JH.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/P1VKCN23LlxHecZ.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/Y2nwk3VOENtD1gJ.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/csqLzlXiMZPHnoY.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/kZXUbVucpWAL4rz.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/zUITYHaG8CN5w71.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/Im19dukNKWTBGsz.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/FjS8pawX4EyRMbv.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/O3pVLri8bX7HuQz.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/HKU7ros4lLBx56F.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/UINcZi5HoxdJjpm.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/v4pfBeuncTIWoqJ.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/Oz7GkZhesqTaCUQ.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/km1wdMv2HolNqPS.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/rdEwaMizfIs96UT.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/6WV3FtawuoX9cP1.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/UGMry9X7tLiFlNj.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/GKkPDs3qUTh5unY.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/JyfujtZLvw3W7gc.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/tZ3WCwloeHTxB7I.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/4Bgj5cKpueV7NxQ.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/17/DZC1haWrOiwSu76.png">
+<meta property="article:published_time" content="2020-03-18T15:11:21.000Z">
+<meta property="article:modified_time" content="2024-02-14T10:18:32.114Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="docker">
+<meta property="article:tag" content="nexus">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/04/17/hpIPe8K5FZV2bGr.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2020/03/18/docker/docker%E9%83%A8%E7%BD%B2nexus%E7%A7%81%E6%9C%89%E4%BB%93%E5%BA%93/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-docker/docker部署nexus私有仓库" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      docker部署nexus私有仓库
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2020/03/18/docker/docker%E9%83%A8%E7%BD%B2nexus%E7%A7%81%E6%9C%89%E4%BB%93%E5%BA%93/" class="article-date">
+	  <time datetime="2020-03-18T15:11:21.000Z" itemprop="datePublished">2020-03-18</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/docker/">docker</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/docker/" rel="tag">docker</a>, <a class="article-tag-link-link" href="/hexo_blog/tags/nexus/" rel="tag">nexus</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2020/03/18/docker/docker%E9%83%A8%E7%BD%B2nexus%E7%A7%81%E6%9C%89%E4%BB%93%E5%BA%93/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="docker部署nexus私有仓库"><a href="#docker部署nexus私有仓库" class="headerlink" title="docker部署nexus私有仓库"></a>docker部署nexus私有仓库</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>最近项目需要对接银行系统，对方提供了一些jar包，这些三方<code>jar</code>是没有上传到中央仓库的，所以无法直接在<code>maven</code>中依赖，因此决定搭建一个<code>Maven</code>私服来处理。<code>maven</code>仓库的使用结构如下图：</p>
+<p><img src="https://i.loli.net/2021/04/17/hpIPe8K5FZV2bGr.png" alt="0.png"></p>
+<p>通常，我们开发项目并没有使用到虚线标识的那两部分，基本都是通过本机的<code>Maven</code>直接访问中央仓库，下载<code>jar</code>包到本地仓库。现在我们需要搭建中间虚线部分。</p>
+<h2 id="docker安装nexus"><a href="#docker安装nexus" class="headerlink" title="docker安装nexus"></a>docker安装nexus</h2><h5 id="1、下载镜像"><a href="#1、下载镜像" class="headerlink" title="1、下载镜像"></a>1、下载镜像</h5><p>官方镜像地址：<a target="_blank" rel="noopener" href="https://hub.docker.com/r/sonatype/nexus3/tags">https://hub.docker.com/r/sonatype/nexus3/tags</a></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker pull sonatype/nexus3 	//下载镜像</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="2、安装"><a href="#2、安装" class="headerlink" title="2、安装"></a>2、安装</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="built_in">mkdir</span> /usr/local/docker/nexus //新建目录</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="built_in">chmod</span> 777 /usr/local/docker/nexus //修改权限</span></span><br><span class="line"></span><br><span class="line">//nexus默认使用8081端口</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker run -d --restart=always -p 8081:8081 --name nexus -v /usr/local/docker/nexus:/nexus-data sonatype/nexus3</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="3、nexus密码"><a href="#3、nexus密码" class="headerlink" title="3、nexus密码"></a>3、nexus密码</h5><p>安装完成后可访问管理平台：<a target="_blank" rel="noopener" href="http://ip:8081/">http://ip:8081</a></p>
+<p>默认管理员用户名：admin 	密码：admin123</p>
+<p>如果提示密码不对，需要到容器里面去修改密码。方式如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">//进入容器</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker <span class="built_in">exec</span> -it nexus /bin/bash</span></span><br><span class="line"></span><br><span class="line">//进入/opt/sonatype/sonatype-work/sonatype-work/目录，找到admin.password文件，里面的内容就是密码</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="built_in">cat</span> admin.password</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="https://i.loli.net/2021/04/17/3SrTRk96DUbB8JH.png" alt="1.png"></p>
+<p>红色部分就是<code>admin</code>的密码。这个只是临时密码，修改密码后<code>admin.password</code>文件会消失。</p>
+<h2 id="配置nexus"><a href="#配置nexus" class="headerlink" title="配置nexus"></a>配置nexus</h2><p>登录<code>nexus</code>管理平台后（注意必须<code>admin</code>登录才行，不然只能浏览模式），可以看到如下界面：</p>
+<p><img src="https://i.loli.net/2021/04/17/P1VKCN23LlxHecZ.png" alt="2.png"></p>
+<h5 id="1、创建Blob-stores"><a href="#1、创建Blob-stores" class="headerlink" title="1、创建Blob stores"></a>1、创建Blob stores</h5><p>在创建<code>repository</code>之前，还需要先指定文件存储目录，便于统一管理。就需要创建<code>Blob stores</code></p>
+<p><img src="https://i.loli.net/2021/04/17/Y2nwk3VOENtD1gJ.png" alt="3.png"></p>
+<p>创建好后可以看到<code>blob stores</code>有两个，一个是系统默认的，一个是刚创建的。如果不想自己创建，使用系统默认的文件存储目录（在<code>sonatype-work/nexus3/blobs</code>）也是可以的。到时候创建<code>repository</code>时，存储目录选择<code>default</code>就可以了。</p>
+<p><img src="https://i.loli.net/2021/04/17/csqLzlXiMZPHnoY.png" alt="4.png"></p>
+<h5 id="2、nexus仓库"><a href="#2、nexus仓库" class="headerlink" title="2、nexus仓库"></a>2、nexus仓库</h5><p><img src="https://i.loli.net/2021/04/17/kZXUbVucpWAL4rz.png" alt="5.png"></p>
+<p>如图所示，代理仓库负责代理远程中央仓库，托管仓库负责本地资源，组资源库 &#x3D; 代理资源库 + 托管资源库。</p>
+<h5 id="3、创建proxy-repository代理仓库"><a href="#3、创建proxy-repository代理仓库" class="headerlink" title="3、创建proxy repository代理仓库"></a>3、创建proxy repository代理仓库</h5><p><img src="https://i.loli.net/2021/04/17/zUITYHaG8CN5w71.png" alt="6.png"></p>
+<p>选择<code>maven2(proxy)</code>，代理仓库</p>
+<p><img src="https://i.loli.net/2021/04/17/Im19dukNKWTBGsz.png" alt="7.png"></p>
+<p>设置代理仓库</p>
+<p><img src="https://i.loli.net/2021/04/17/FjS8pawX4EyRMbv.png" alt="8.png"></p>
+<p><img src="https://i.loli.net/2021/04/17/O3pVLri8bX7HuQz.png" alt="9.png"></p>
+<p>其他的可以采用默认，以后需要修改的可以再修改。</p>
+<h5 id="4-创建hosted-repository仓库"><a href="#4-创建hosted-repository仓库" class="headerlink" title="4.创建hosted repository仓库"></a>4.创建hosted repository仓库</h5><p><img src="https://i.loli.net/2021/04/17/HKU7ros4lLBx56F.png" alt="10.png"></p>
+<p> <img src="https://i.loli.net/2021/04/17/UINcZi5HoxdJjpm.png" alt="11.png"></p>
+<p>上图的Hosted设置选项，选项中有三个值：</p>
+<p><strong>Allow redeploy</strong>：允许同一个版本号下重复提交代码, <code>nexus</code>以时间区分</p>
+<p><strong>Disable redeploy</strong>：不允许同一个版本号下重复提交代码</p>
+<p><strong>Read-Only</strong>：不允许提交任何版本</p>
+<p>原生的<code>maven-releases</code>库是<code>Disable redeploy</code>设置， <code>maven-snapshots</code>是<code>Allow redeploy</code>。</p>
+<h5 id="5、创建group-repository组仓库"><a href="#5、创建group-repository组仓库" class="headerlink" title="5、创建group repository组仓库"></a>5、创建group repository组仓库</h5><p><img src="https://i.loli.net/2021/04/17/v4pfBeuncTIWoqJ.png" alt="12.png"></p>
+<p><img src="https://i.loli.net/2021/04/17/Oz7GkZhesqTaCUQ.png" alt="13.png"></p>
+<p>将<code>hosted repositories</code>宿主仓库的顺序放在<code>proxy repositories</code>代理仓库之前，因为一个<code>group</code>仓库组中可以包括宿主仓库和代理仓库。而整个<code>group repository</code>是作为一个<code>public repository</code>给用户使用的。</p>
+<p>所以当查找<code>jar</code>包的时候，如果代理资源库在前面，那就是先从远程去查找jar包，而不是先从宿主仓库（本地仓库）去查找jar包。</p>
+<h2 id="设置maven"><a href="#设置maven" class="headerlink" title="设置maven"></a>设置maven</h2><p><code>Maven</code>下的<code>setting.xml</code>文件和项目中的<code>pom.xml</code>文件的关系是：<code>settting.xml</code>文件是全局设置，而<code>pom.xml</code>文件是局部设置。<code>pom.xml</code>文件对于项目来说，是优先使用的。而<code>pom.xml</code>文件中如果没有配置镜像地址的话，就按照<code>settting.xml</code>中定义的地址去查找。</p>
+<h5 id="1、修改maven配置文件setting-xml"><a href="#1、修改maven配置文件setting-xml" class="headerlink" title="1、修改maven配置文件setting.xml"></a>1、修改maven配置文件setting.xml</h5><p><img src="https://i.loli.net/2021/04/17/km1wdMv2HolNqPS.png" alt="14.png"></p>
+<p>如上图方式获取组仓库<code>smart_group</code>的仓库地址，修改<code>setting.xml</code>文件如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!--nexus服务器,id为组仓库name--&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">servers</span>&gt;</span>  </span><br><span class="line">  <span class="tag">&lt;<span class="name">server</span>&gt;</span>  </span><br><span class="line">      <span class="tag">&lt;<span class="name">id</span>&gt;</span>smart_group<span class="tag">&lt;/<span class="name">id</span>&gt;</span>  </span><br><span class="line">      <span class="tag">&lt;<span class="name">username</span>&gt;</span>admin<span class="tag">&lt;/<span class="name">username</span>&gt;</span>  </span><br><span class="line">      <span class="tag">&lt;<span class="name">password</span>&gt;</span>admin123<span class="tag">&lt;/<span class="name">password</span>&gt;</span>  </span><br><span class="line">  <span class="tag">&lt;/<span class="name">server</span>&gt;</span>   </span><br><span class="line"><span class="tag">&lt;/<span class="name">servers</span>&gt;</span>  </span><br><span class="line"><span class="comment">&lt;!--仓库组的url地址，id和name可以写组仓库name，mirrorOf的值设置为central--&gt;</span>  </span><br><span class="line"><span class="tag">&lt;<span class="name">mirrors</span>&gt;</span>     </span><br><span class="line">  <span class="tag">&lt;<span class="name">mirror</span>&gt;</span>  </span><br><span class="line">      <span class="tag">&lt;<span class="name">id</span>&gt;</span>smart_group<span class="tag">&lt;/<span class="name">id</span>&gt;</span>  </span><br><span class="line">      <span class="tag">&lt;<span class="name">name</span>&gt;</span>smart_group<span class="tag">&lt;/<span class="name">name</span>&gt;</span>  </span><br><span class="line">      <span class="tag">&lt;<span class="name">url</span>&gt;</span>http://******:8081/repository/smart_group/<span class="tag">&lt;/<span class="name">url</span>&gt;</span>  </span><br><span class="line">      <span class="tag">&lt;<span class="name">mirrorOf</span>&gt;</span>central<span class="tag">&lt;/<span class="name">mirrorOf</span>&gt;</span>  </span><br><span class="line">  <span class="tag">&lt;/<span class="name">mirror</span>&gt;</span>     </span><br><span class="line"><span class="tag">&lt;/<span class="name">mirrors</span>&gt;</span> </span><br></pre></td></tr></table></figure>
+
+<p>修改后可以重新编译项目，必须添加参数<code>-U</code>,（<code>-U，--update-snapshots</code>，强制更新<code>releases</code>、<code>snapshots</code>类型的插件或依赖库，否则<code>maven</code>一天只会更新一次<code>snapshot</code>依赖）。代理仓库会从远程中央仓库下载<code>jar</code>包</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">mvn clean compile -U</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="https://i.loli.net/2021/04/17/rdEwaMizfIs96UT.png" alt="15.png"></p>
+<p><img src="https://i.loli.net/2021/04/17/6WV3FtawuoX9cP1.png" alt="16.png"></p>
+<p>这个时候可以看到代理仓库已经从中央仓库下载了项目编译需要的jar包。同样地，在组仓库中也能看到所有的<code>jar</code>包，包括代理仓库和宿主仓库的。</p>
+<h5 id="2、通过管理平台上传三方jar包"><a href="#2、通过管理平台上传三方jar包" class="headerlink" title="2、通过管理平台上传三方jar包"></a>2、通过管理平台上传三方jar包</h5><p>有些<code>jar</code>是第三方提供的，在中央仓库中是没有的，我们可以上传这些本地三方jar包到<code>hosted repository</code>宿主仓库中。</p>
+<p><img src="https://i.loli.net/2021/04/17/UGMry9X7tLiFlNj.png" alt="17.png"></p>
+<p><img src="https://i.loli.net/2021/04/17/GKkPDs3qUTh5unY.png" alt="18.png"></p>
+<p>上传成功后，就可以看到<code>hosted repository</code>和<code>group repository</code>中已经有了刚上传的三方<code>jar</code>包</p>
+<p><img src="https://i.loli.net/2021/04/17/JyfujtZLvw3W7gc.png" alt="19.png"></p>
+<p>然后项目中通过编译打包就可以下载<code>jar</code>包到本地<code>repository</code>中了，记住<code>maven  clean</code>、<code>compile</code>、<code>package</code>首次执行时加参数<code>-U</code>。</p>
+<h5 id="3、通过命令上传三方jar包"><a href="#3、通过命令上传三方jar包" class="headerlink" title="3、通过命令上传三方jar包"></a>3、通过命令上传三方jar包</h5><p>在<code>setting.xml</code>配置文件中添加<code>hosted repository server</code></p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!--id自定义，但是在使用命令上传的时候会用到--&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">server</span>&gt;</span>  </span><br><span class="line">    <span class="tag">&lt;<span class="name">id</span>&gt;</span>smart_hosted<span class="tag">&lt;/<span class="name">id</span>&gt;</span>  </span><br><span class="line">    <span class="tag">&lt;<span class="name">username</span>&gt;</span>admin<span class="tag">&lt;/<span class="name">username</span>&gt;</span>  </span><br><span class="line">    <span class="tag">&lt;<span class="name">password</span>&gt;</span>admin123<span class="tag">&lt;/<span class="name">password</span>&gt;</span>  </span><br><span class="line"> <span class="tag">&lt;/<span class="name">server</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>使用如下命令上传jar包：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn deploy:deploy-file -DgroupId=com.alan6.land -DartifactId=land-user -Dversion=0.0.1 -Dpackaging=jar -Dfile=d:\land-service-user.jar -Durl=http://ip:8081/repository/smart_group/ -DrepositoryId=smart_group</span><br></pre></td></tr></table></figure>
+
+<p>命令解释：</p>
+<p>-DgroupId&#x3D;com.alan6.land　　　　 　　　　　　　　　　　　自定义</p>
+<p>-DartifactId&#x3D;land-user　　　 　　　　　　　　　　　　　　　自定义</p>
+<p>-Dversion&#x3D;0.0.1　　　　　 　　　　　　　　　　　　　　　　自定义，三个自定义，构成<code>pom.xml</code>文件中的标识</p>
+<p>-Dpackaging&#x3D;jar　　　　　　　　　　　　　　　　　　　　传的类型是jar类型</p>
+<p>-Dfile&#x3D;D:\jar\land-user-0.0.1.jar　　　　　　　　　　　　　　<code>jar</code>包的本地磁盘位置</p>
+<p>-Durl&#x3D;<a target="_blank" rel="noopener" href="http://ip:8081/repository/smart_hosted/">http://ip:8081/repository/smart_hosted/</a>　　　　        <code>hosted</code>资源库的地址</p>
+<p>-DrepositoryId&#x3D;smart_hosted　　　　　　　　　　　　　　　需要和<code>setting.xml</code>文件中配置的ID一致</p>
+<p><img src="https://i.loli.net/2021/04/17/tZ3WCwloeHTxB7I.png" alt="20.png"></p>
+<p>上传成功后，<code>hosted repository</code>中已经可以看到了</p>
+<p><img src="https://i.loli.net/2021/04/17/4Bgj5cKpueV7NxQ.png" alt="21.png"></p>
+<h2 id="deploy部署jar包到私服"><a href="#deploy部署jar包到私服" class="headerlink" title="deploy部署jar包到私服"></a>deploy部署jar包到私服</h2><h5 id="1、release和snapshots-jar包区别"><a href="#1、release和snapshots-jar包区别" class="headerlink" title="1、release和snapshots jar包区别"></a>1、release和snapshots jar包区别</h5><p><code>SNAPSHOT</code>版本代表不稳定（快照版本），还在处于开发阶段，随时都会有变化。当上传同样的版本号<code>jar</code>包的时候，<code>SNAPSHOT</code>会在版本号的后面自动追加一串新的数字，即日志标签，<code>nexus</code>会根据日志标签区分出不同的版本，在<code>maven</code>引用时，如果使用的是<code>snapshot</code>版本，重新导入<code>maven</code>的时候，会去私库拉取最新上传的代码。</p>
+<p><code>RELEASE</code>则代表稳定的版本（发布版本），一般上线后都会改用<code>RELEASE</code>版本。也就是说1.0，2.0这样的版本只能有一个，也就是说当前版本号下，不可能出现不同的<code>jar</code>。</p>
+<h5 id="2、创建snapshot仓库"><a href="#2、创建snapshot仓库" class="headerlink" title="2、创建snapshot仓库"></a>2、创建snapshot仓库</h5><p>可以在<code>nexus</code>上添加一个<code>snapshot</code>仓库，专门用于存放<code>snapshot</code>版本的jar包。<code>snapshot</code>仓库也是<code>hosted</code>类型的，创建方式和<code>hosted repository</code>类型。创建好后，加入到组仓库里面就可以了。</p>
+<p><img src="https://i.loli.net/2021/04/17/DZC1haWrOiwSu76.png" alt="22.png"></p>
+<h5 id="3、项目pom-xml文件配置"><a href="#3、项目pom-xml文件配置" class="headerlink" title="3、项目pom.xml文件配置"></a>3、项目pom.xml文件配置</h5><p>可以在项目的<code>pom</code>文件中设置具体的<code>releases</code>库和<code>snapshots</code>库。如果当前项目的版本号的后缀名中带着<code>-SNAPSHOT</code>，类似<code>&lt;version&gt;***-SNAPSHOT&lt;/version&gt;</code>，就会将项目<code>jar</code>包提交到<code>snapshots</code>库中，没有带<code>-SNAPSHOT</code>的话会提交<code>releases</code>库中。</p>
+<p>在<code>pom.xml</code>文件中配置<code>distributionManagement</code>节点如下，在项目中执行<code>deploy</code>命令后，<code>jar</code>包将会被上传到<code>nexus</code>中。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">distributionManagement</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">repository</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">id</span>&gt;</span>nexus-releases<span class="tag">&lt;/<span class="name">id</span>&gt;</span> <span class="comment">&lt;!--release版本仓库--&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>Nexus Release Repository<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">url</span>&gt;</span>http://ip:8081/repository/smart_hosted/<span class="tag">&lt;/<span class="name">url</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">repository</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">snapshotRepository</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">id</span>&gt;</span>nexus-snapshots<span class="tag">&lt;/<span class="name">id</span>&gt;</span> <span class="comment">&lt;!--snapshot版本仓库--&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>Nexus Snapshot Repository<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">url</span>&gt;</span>http://ip:8081/repository/smart_snapshots/<span class="tag">&lt;/<span class="name">url</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">snapshotRepository</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">distributionManagement</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>默认地，<code>maven</code>编译打包不会下载<code>SNAPSHOT</code>版本的<code>jar</code>包，所以还需要在<code>pom.xml</code>文件中配置支持下载<code>snapshot</code>版本<code>jar</code>包。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">repositories</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">repository</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">id</span>&gt;</span>smart_group<span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">url</span>&gt;</span>http://ip:8081/repository/smart_group/<span class="tag">&lt;/<span class="name">url</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">snapshots</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">enabled</span>&gt;</span>true<span class="tag">&lt;/<span class="name">enabled</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">snapshots</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">repository</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">repositories</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>至此，<code>nexus</code>搭建完毕，支持本地部署依赖<code>jar</code>包</p>
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2020/03/23/docker/docker%E9%83%A8%E7%BD%B2nginx%E9%85%8D%E7%BD%AESSL%E8%AF%81%E4%B9%A6%E5%AE%9E%E7%8E%B0https/" title="docker部署nginx配置SSL证书实现https"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2020/03/18/jvm/JVM%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E5%92%8C%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%9C%BA%E5%88%B6/" title="JVM 类加载器和双亲委派机制"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

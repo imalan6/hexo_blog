@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>对象引用关系总结 | Hexo</title>
+  <meta name="description" content="对象引用关系总结概述Java 执行GC时判断对象是否存活有两种方式，其中一种是引用计数。  引用计数：Java堆中每一个对象都有一个引用计数属性，引用每新增1次计数加1，引用每释放1次计数减1。  在JDK 1.2以前的版本中，若一个对象不被任何变量引用，那么程序就无法再使用这个对象。也就是说，只有对象处于可达状态（reachable），程序才能使用它。从JDK 1.2版本开始，对象的引用被划分为">
+<meta property="og:type" content="article">
+<meta property="og:title" content="对象引用关系总结">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2021/05/12/jvm/%E5%AF%B9%E8%B1%A1%E5%BC%95%E7%94%A8%E5%85%B3%E7%B3%BB%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="对象引用关系总结概述Java 执行GC时判断对象是否存活有两种方式，其中一种是引用计数。  引用计数：Java堆中每一个对象都有一个引用计数属性，引用每新增1次计数加1，引用每释放1次计数减1。  在JDK 1.2以前的版本中，若一个对象不被任何变量引用，那么程序就无法再使用这个对象。也就是说，只有对象处于可达状态（reachable），程序才能使用它。从JDK 1.2版本开始，对象的引用被划分为">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/03/07/g49rofMNJEiGeab.png">
+<meta property="article:published_time" content="2021-05-12T07:59:59.000Z">
+<meta property="article:modified_time" content="2024-02-13T06:00:28.158Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="jvm">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/03/07/g49rofMNJEiGeab.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2021/05/12/jvm/%E5%AF%B9%E8%B1%A1%E5%BC%95%E7%94%A8%E5%85%B3%E7%B3%BB%E6%80%BB%E7%BB%93/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-jvm/对象引用关系总结" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      对象引用关系总结
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2021/05/12/jvm/%E5%AF%B9%E8%B1%A1%E5%BC%95%E7%94%A8%E5%85%B3%E7%B3%BB%E6%80%BB%E7%BB%93/" class="article-date">
+	  <time datetime="2021-05-12T07:59:59.000Z" itemprop="datePublished">2021-05-12</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/jvm/">jvm</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/jvm/" rel="tag">jvm</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2021/05/12/jvm/%E5%AF%B9%E8%B1%A1%E5%BC%95%E7%94%A8%E5%85%B3%E7%B3%BB%E6%80%BB%E7%BB%93/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="对象引用关系总结"><a href="#对象引用关系总结" class="headerlink" title="对象引用关系总结"></a>对象引用关系总结</h1><h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>Java 执行<code>GC</code>时判断对象是否存活有两种方式，其中一种是引用计数。</p>
+<blockquote>
+<p><strong>引用计数</strong>：Java堆中每一个对象都有一个引用计数属性，引用每新增1次计数加1，引用每释放1次计数减1。</p>
+</blockquote>
+<p>在<code>JDK 1.2</code>以前的版本中，若一个对象不被任何变量引用，那么程序就无法再使用这个对象。也就是说，只有对象处于可达状态（<code>reachable</code>），程序才能使用它。从<code>JDK 1.2</code>版本开始，对象的引用被划分为4种级别，使程序能更加灵活地控制对象的生命周期。这4种级别由高到低依次为：<strong>强引用</strong>、<strong>软引用</strong>、<strong>弱引用</strong>和<strong>虚引用</strong>。</p>
+<h2 id="强引用"><a href="#强引用" class="headerlink" title="强引用"></a>强引用</h2><p>强引用是使用最普遍的引用。<strong>如果一个对象具有强引用，那垃圾回收器绝不会回收它</strong>。如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Object</span> <span class="variable">strongReference</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();</span><br></pre></td></tr></table></figure>
+
+<p>当内存空间不足时，<code>Java</code>虚拟机宁愿抛出<code>OutOfMemoryError</code>错误，使程序异常终止，也不会靠随意回收具有强引用的对象来解决内存不足的问题。 如果强引用对象不使用时，需要弱化从而使<code>GC</code>能够回收，如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">strongReference = <span class="literal">null</span>;</span><br></pre></td></tr></table></figure>
+
+<p>显式地设置<code>strongReference</code>对象为<code>null</code>，或让其超出对象的生命周期范围，则<code>gc</code>认为该对象不存在引用，这时就可以回收这个对象。具体什么时候收集这要取决于<code>GC</code>算法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">Object</span> <span class="variable">strongReference</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在一个方法的内部有一个强引用，这个引用保存在 Java 栈中，而真正的引用内容<code>Object</code>保存在 Java 堆中。 当这个方法运行完成后，就会退出方法栈，则引用对象的引用数为0，这个对象会被回收。</p>
+<p>但是如果这个<code>strongReference</code>是全局变量时，就需要在不用这个对象时赋值为<code>null</code>，因为强引用不会被垃圾回收。</p>
+<p>比如，<code>ArrayList</code>的<code>Clear</code>方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">clear</span><span class="params">()</span> &#123;</span><br><span class="line">    modCount++;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// clear to let GC do its work</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; size; i++)</span><br><span class="line">        elementData[i] = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    size = <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在<code>ArrayList</code>类中定义了一个<code>elementData</code>数组，在调用<code>clear</code>方法清空数组时，每个数组元素被赋值为<code>null</code>。 不同于<code>elementData = null</code>，强引用仍然存在，避免在后续调用<code>add()</code>等方法添加元素时进行内存的重新分配。 使用如<code>clear()</code>方法内存数组中存放的引用类型进行内存释放特别适用，这样就可以及时释放内存。</p>
+<h2 id="软引用"><a href="#软引用" class="headerlink" title="软引用"></a>软引用</h2><p>如果一个对象只具有软引用，则内存空间充足时，垃圾回收器就不会回收它；<strong>如果内存空间不足了，就会回收这些对象的内存</strong>。只要垃圾回收器没有回收它，该对象就可以被程序使用。</p>
+<blockquote>
+<p>软引用可用来实现内存敏感的<strong>高速缓存</strong>。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 强引用</span></span><br><span class="line"><span class="type">String</span> <span class="variable">strongReference</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;abc&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 软引用</span></span><br><span class="line"><span class="type">String</span> <span class="variable">str</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;abc&quot;</span>);</span><br><span class="line"></span><br><span class="line">SoftReference&lt;String&gt; softReference = <span class="keyword">new</span> <span class="title class_">SoftReference</span>&lt;String&gt;(str);</span><br></pre></td></tr></table></figure>
+
+<p>软引用可以和一个引用队列 (<code>ReferenceQueue</code>) 联合使用。如果软引用所引用对象被垃圾回收，JAVA 虚拟机就会把这个软引用加入到与之关联的引用队列中。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">ReferenceQueue&lt;String&gt; referenceQueue = <span class="keyword">new</span> <span class="title class_">ReferenceQueue</span>&lt;&gt;();</span><br><span class="line"><span class="type">String</span> <span class="variable">str</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;abc&quot;</span>);</span><br><span class="line">SoftReference&lt;String&gt; softReference = <span class="keyword">new</span> <span class="title class_">SoftReference</span>&lt;&gt;(str, referenceQueue);</span><br><span class="line"></span><br><span class="line">str = <span class="literal">null</span>;</span><br><span class="line"><span class="comment">// Notify GC</span></span><br><span class="line">System.gc();</span><br><span class="line"></span><br><span class="line">System.out.println(softReference.get()); <span class="comment">// abc</span></span><br><span class="line"></span><br><span class="line">Reference&lt;? <span class="keyword">extends</span> <span class="title class_">String</span>&gt; reference = referenceQueue.poll();</span><br><span class="line">System.out.println(reference); <span class="comment">//null</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注意：软引用对象是在 JVM 内存不够的时候才会被回收，我们调用<code>System.gc()</code>方法只是起通知作用，JVM 什么时候扫描回收对象是 JVM 自己的状态决定的。就算扫描到软引用对象也不一定会回收它，只有内存不够的时候才会回收。</p>
+</blockquote>
+<p>当内存不足时，<code>JVM</code>首先将软引用中的对象引用置为<code>null</code>，然后通知垃圾回收器进行回收：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(JVM内存不足) &#123;</span><br><span class="line">    <span class="comment">// 将软引用中的对象引用置为null</span></span><br><span class="line">    str = <span class="literal">null</span>;</span><br><span class="line">    <span class="comment">// 通知垃圾回收器进行回收</span></span><br><span class="line">    System.gc();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>也就是说，垃圾收集线程会在虚拟机抛出<code>OutOfMemoryError</code>之前回收软引用对象，而且虚拟机会尽可能优先回收长时间闲置不用的软引用对象。对那些刚构建的或刚使用过的”较新的”软对象会被虚拟机尽可能保留，这就是引入引用队列<code>ReferenceQueue</code>的原因。</p>
+<ul>
+<li><strong>应用场景</strong></li>
+</ul>
+<p>浏览器的后退按钮。按后退时，这个后退时显示的网页内容是重新进行请求还是从缓存中取出呢？这就要看具体的实现策略了。</p>
+<p>1）如果一个网页在浏览结束时就进行内容的回收，则按后退查看前面浏览过的页面时，需要重新构建；</p>
+<p>2）如果将浏览过的网页存储到内存中会造成内存的大量浪费，甚至会造成内存溢出。</p>
+<p>这时候就可以使用软引用，很好的解决了实际的问题：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取浏览器对象进行浏览</span></span><br><span class="line"><span class="type">Browser</span> <span class="variable">browser</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Browser</span>();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 从后台程序加载浏览页面</span></span><br><span class="line"><span class="type">BrowserPage</span> <span class="variable">page</span> <span class="operator">=</span> browser.getPage();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 将浏览完毕的页面置为软引用</span></span><br><span class="line"><span class="type">SoftReference</span> <span class="variable">softReference</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SoftReference</span>(page);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 回退或者再次浏览此页面时</span></span><br><span class="line"><span class="keyword">if</span>(softReference.get() != <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="comment">// 内存充足，还没有被回收器回收，直接获取缓存</span></span><br><span class="line">    page = softReference.get();</span><br><span class="line">&#125; </span><br><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="comment">// 内存不足，软引用的对象已经回收</span></span><br><span class="line">    page = browser.getPage();</span><br><span class="line">    <span class="comment">// 重新构建软引用</span></span><br><span class="line">    softReference = <span class="keyword">new</span> <span class="title class_">SoftReference</span>(page);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="弱引用"><a href="#弱引用" class="headerlink" title="弱引用"></a>弱引用</h2><p>弱引用与软引用的区别在于：只具有弱引用的对象拥有更短暂的生命周期。在垃圾回收器线程扫描它所管辖的内存区域的过程中，<strong>一旦发现了只具有弱引用的对象，不管当前内存空间足够与否，都会回收它的内存</strong>。不过，由于垃圾回收器是一个优先级很低的线程，因此不一定会很快发现那些只具有弱引用的对象。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">str</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;abc&quot;</span>);</span><br><span class="line">WeakReference&lt;String&gt; weakReference = <span class="keyword">new</span> <span class="title class_">WeakReference</span>&lt;&gt;(str);</span><br><span class="line">str = <span class="literal">null</span>;</span><br></pre></td></tr></table></figure>
+
+<p><code>JVM</code>首先将软引用中的对象引用置为<code>null</code>，然后通知垃圾回收器进行回收：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">str = <span class="literal">null</span>;</span><br><span class="line">System.gc();</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注意：如果一个对象是偶尔使用，并且希望在使用时随时就能获取到，但又不想影响此对象的垃圾收集，那么你应该用 Weak Reference 来记住此对象。</p>
+</blockquote>
+<p>下面的代码会让一个弱引用再次变为一个强引用：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">str</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;abc&quot;</span>);</span><br><span class="line">WeakReference&lt;String&gt; weakReference = <span class="keyword">new</span> <span class="title class_">WeakReference</span>&lt;&gt;(str);</span><br><span class="line"><span class="comment">// 弱引用转强引用</span></span><br><span class="line"><span class="type">String</span> <span class="variable">strongReference</span> <span class="operator">=</span> weakReference.get();</span><br></pre></td></tr></table></figure>
+
+<p>同样，弱引用可以和一个引用队列(<code>ReferenceQueue</code>)联合使用，如果弱引用所引用的对象被垃圾回收，JVM 就会把这个弱引用加入到与之关联的引用队列中。</p>
+<ul>
+<li><strong>测试实例</strong></li>
+</ul>
+<p><code>GCTarget.java</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">GCTarget</span> &#123;</span><br><span class="line">    <span class="comment">// 对象的ID</span></span><br><span class="line">    <span class="keyword">public</span> String id;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 占用内存空间</span></span><br><span class="line">    <span class="type">byte</span>[] buffer = <span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">1024</span>];</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">GCTarget</span><span class="params">(String id)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.id = id;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">finalize</span><span class="params">()</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">        <span class="comment">// 执行垃圾回收时打印显示对象ID</span></span><br><span class="line">        System.out.println(<span class="string">&quot;Finalizing GCTarget, id is : &quot;</span> + id);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>GCTargetWeakReference.java</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">GCTargetWeakReference</span> <span class="keyword">extends</span> <span class="title class_">WeakReference</span>&lt;GCTarget&gt; &#123;</span><br><span class="line">    <span class="comment">// 弱引用的ID</span></span><br><span class="line">    <span class="keyword">public</span> String id;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">GCTargetWeakReference</span><span class="params">(GCTarget gcTarget,</span></span><br><span class="line"><span class="params">              ReferenceQueue&lt;? <span class="built_in">super</span> GCTarget&gt; queue)</span> &#123;</span><br><span class="line">        <span class="built_in">super</span>(gcTarget, queue);</span><br><span class="line">        <span class="built_in">this</span>.id = gcTarget.id;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">finalize</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;Finalizing GCTargetWeakReference &quot;</span> + id);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>WeakReferenceTest.java</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">WeakReferenceTest</span> &#123;</span><br><span class="line">    <span class="comment">// 弱引用队列</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> ReferenceQueue&lt;GCTarget&gt; REFERENCE_QUEUE = <span class="keyword">new</span> <span class="title class_">ReferenceQueue</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        LinkedList&lt;GCTargetWeakReference&gt; gcTargetList = <span class="keyword">new</span> <span class="title class_">LinkedList</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建弱引用的对象，依次加入链表中</span></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">5</span>; i++) &#123;</span><br><span class="line">            <span class="type">GCTarget</span> <span class="variable">gcTarget</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">GCTarget</span>(String.valueOf(i));</span><br><span class="line">            <span class="type">GCTargetWeakReference</span> <span class="variable">weakReference</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">GCTargetWeakReference</span>(gcTarget,</span><br><span class="line">                REFERENCE_QUEUE);</span><br><span class="line">            gcTargetList.add(weakReference);</span><br><span class="line"></span><br><span class="line">            System.out.println(<span class="string">&quot;Just created GCTargetWeakReference obj: &quot;</span> +</span><br><span class="line">                gcTargetList.getLast());</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 通知GC进行垃圾回收</span></span><br><span class="line">        System.gc();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 休息几分钟，等待上面的垃圾回收线程运行完成</span></span><br><span class="line">            Thread.sleep(<span class="number">6000</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 检查关联的引用队列是否为空</span></span><br><span class="line">        Reference&lt;? <span class="keyword">extends</span> <span class="title class_">GCTarget</span>&gt; reference;</span><br><span class="line">        <span class="keyword">while</span>((reference = REFERENCE_QUEUE.poll()) != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span>(reference <span class="keyword">instanceof</span> GCTargetWeakReference) &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;In queue, id is: &quot;</span> +</span><br><span class="line">                    ((GCTargetWeakReference) (reference)).id);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行<code>WeakReferenceTest.java</code>，运行结果如下：</p>
+<p><img src="https://i.loli.net/2021/03/07/g49rofMNJEiGeab.png" alt="0.png"></p>
+<p>可见<code>WeakReference</code>对象的生命周期基本由垃圾回收器决定，一旦垃圾回收线程发现了弱引用对象，在下一次<code>GC</code>过程中就会对其进行回收。</p>
+<h2 id="虚引用"><a href="#虚引用" class="headerlink" title="虚引用"></a>虚引用</h2><p>虚引用顾名思义，就是形同虚设。与其他几种引用都不同，虚引用并不会决定对象的生命周期。<strong>如果一个对象仅持有虚引用，那么它就和没有任何引用一样，在任何时候都可能被垃圾回收器回收。</strong></p>
+<ul>
+<li><strong>应用场景</strong></li>
+</ul>
+<p>虚引用主要用来跟踪对象被垃圾回收器回收的活动。 虚引用与软引用和弱引用的一个区别在于：</p>
+<blockquote>
+<p>虚引用必须和引用队列 (ReferenceQueue) 联合使用。当垃圾回收器准备回收一个对象时，如果发现它还有虚引用，就会在回收对象的内存之前，把这个虚引用加入到与之关联的引用队列中。</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">String str = new String(&quot;abc&quot;);</span><br><span class="line">ReferenceQueue queue = new ReferenceQueue();</span><br><span class="line">// 创建虚引用，要求必须与一个引用队列关联</span><br><span class="line">PhantomReference pr = new PhantomReference(str, queue);</span><br></pre></td></tr></table></figure>
+
+<p>程序可以通过判断引用队列中是否已经加入了虚引用，来了解被引用的对象是否将要进行垃圾回收。如果程序发现某个虚引用已经被加入到引用队列，那么就可以在所引用的对象的内存被回收之前采取必要的行动。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><blockquote>
+<p>Java中4种引用的级别和强度由高到低依次为：强引用 -&gt; 软引用 -&gt; 弱引用 -&gt; 虚引用</p>
+</blockquote>
+<p>当垃圾回收器回收时，某些对象会被回收，某些不会被回收。垃圾回收器会从根对象 GC ROOT 来标记存活的对象，然后将某些不可达的对象和一些引用的对象进行回收。</p>
+<table>
+<thead>
+<tr>
+<th>引用类型</th>
+<th>被垃圾回收时间</th>
+<th>用途</th>
+<th>生存时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>强引用</td>
+<td>从来不会</td>
+<td>对象的一般状态</td>
+<td>JVM 停止运行时终止</td>
+</tr>
+<tr>
+<td>软引用</td>
+<td>当内存不足时</td>
+<td>对象缓存</td>
+<td>内存不足时终止</td>
+</tr>
+<tr>
+<td>弱引用</td>
+<td>正常垃圾回收时</td>
+<td>对象缓存</td>
+<td>垃圾回收后终止</td>
+</tr>
+<tr>
+<td>虚引用</td>
+<td>正常垃圾回收时</td>
+<td>跟踪对象的垃圾回收</td>
+<td>垃圾回收后终止</td>
+</tr>
+</tbody></table>
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2021/05/26/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BSleuth%E5%92%8CZipkin/" title="SpringCloud系列之Sleuth和Zipkin"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2021/04/21/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BRibbon/" title="SpringCloud系列之Ribbon"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

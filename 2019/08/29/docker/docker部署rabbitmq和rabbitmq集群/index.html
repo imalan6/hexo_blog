@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>docker部署rabbitmq和rabbitmq集群 | Hexo</title>
+  <meta name="description" content="docker部署rabbitmq和rabbitmq集群部署RabbitMQ单机1、查询rabbitmq镜像1#docker search rabbitmq:management  2、拉取rabbitmq镜像1#docker pull rabbitmq:management  3、创建并启动容器 创建和启动  1#docker run -d --hostname my-rabbit --name">
+<meta property="og:type" content="article">
+<meta property="og:title" content="docker部署rabbitmq和rabbitmq集群">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2019/08/29/docker/docker%E9%83%A8%E7%BD%B2rabbitmq%E5%92%8Crabbitmq%E9%9B%86%E7%BE%A4/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="docker部署rabbitmq和rabbitmq集群部署RabbitMQ单机1、查询rabbitmq镜像1#docker search rabbitmq:management  2、拉取rabbitmq镜像1#docker pull rabbitmq:management  3、创建并启动容器 创建和启动  1#docker run -d --hostname my-rabbit --name">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/04/16/Andp5TIB43vo91O.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/16/sV3yDXfNcaST18k.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/16/gwd83cNSI7h1orZ.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/16/jV7H18gLonJaGDu.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/16/hazUZvgj9NCsobG.png">
+<meta property="article:published_time" content="2019-08-29T14:11:21.000Z">
+<meta property="article:modified_time" content="2024-02-14T10:19:07.202Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="docker">
+<meta property="article:tag" content="rabbitmq">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/04/16/Andp5TIB43vo91O.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2019/08/29/docker/docker%E9%83%A8%E7%BD%B2rabbitmq%E5%92%8Crabbitmq%E9%9B%86%E7%BE%A4/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-docker/docker部署rabbitmq和rabbitmq集群" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      docker部署rabbitmq和rabbitmq集群
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2019/08/29/docker/docker%E9%83%A8%E7%BD%B2rabbitmq%E5%92%8Crabbitmq%E9%9B%86%E7%BE%A4/" class="article-date">
+	  <time datetime="2019-08-29T14:11:21.000Z" itemprop="datePublished">2019-08-29</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/docker/">docker</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/docker/" rel="tag">docker</a>, <a class="article-tag-link-link" href="/hexo_blog/tags/rabbitmq/" rel="tag">rabbitmq</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2019/08/29/docker/docker%E9%83%A8%E7%BD%B2rabbitmq%E5%92%8Crabbitmq%E9%9B%86%E7%BE%A4/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="docker部署rabbitmq和rabbitmq集群"><a href="#docker部署rabbitmq和rabbitmq集群" class="headerlink" title="docker部署rabbitmq和rabbitmq集群"></a>docker部署rabbitmq和rabbitmq集群</h1><h2 id="部署RabbitMQ单机"><a href="#部署RabbitMQ单机" class="headerlink" title="部署RabbitMQ单机"></a>部署RabbitMQ单机</h2><h5 id="1、查询rabbitmq镜像"><a href="#1、查询rabbitmq镜像" class="headerlink" title="1、查询rabbitmq镜像"></a>1、查询rabbitmq镜像</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker search rabbitmq:management</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="2、拉取rabbitmq镜像"><a href="#2、拉取rabbitmq镜像" class="headerlink" title="2、拉取rabbitmq镜像"></a>2、拉取rabbitmq镜像</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker pull rabbitmq:management</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="3、创建并启动容器"><a href="#3、创建并启动容器" class="headerlink" title="3、创建并启动容器"></a>3、创建并启动容器</h5><ul>
+<li>创建和启动</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker run -d --hostname my-rabbit --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:management</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>创建和启动（同时设置用户和密码）</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker run -d --hostname my-rabbit --name rabbitmq --restart always -e RABBITMQ_DEFAULT_USER=admin -e RABBITMQ_DEFAULT_PASS=admin -v /etc/localtime:/etc/localtime:ro -v /usr/local/rabbitmq/data:/var/lib/rabbitmq -p 15672:15672 -p 5672:5672 -p 25672:25672 -p 61613:61613 -p 1883:1883 rabbitmq:management</span></span><br></pre></td></tr></table></figure>
+
+<p>说明：</p>
+<p>–hostname：指定容器主机名称</p>
+<p>–name：指定容器名称</p>
+<p>-p：将mq端口号映射到本地，15672为控制台端口号（用于管理<code>rabbitmq</code>），5672为应用访问端口号（应用程序访问）。</p>
+<h5 id="4、查看rabbitmq日志，检查运行状况"><a href="#4、查看rabbitmq日志，检查运行状况" class="headerlink" title="4、查看rabbitmq日志，检查运行状况"></a>4、查看rabbitmq日志，检查运行状况</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker logs rabbit</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="部署RabbitMQ集群"><a href="#部署RabbitMQ集群" class="headerlink" title="部署RabbitMQ集群"></a>部署RabbitMQ集群</h2><h3 id="RabbitMQ集群概念"><a href="#RabbitMQ集群概念" class="headerlink" title="RabbitMQ集群概念"></a>RabbitMQ集群概念</h3><p><code>RabbitMQ</code>有三种模式：</p>
+<ul>
+<li><p>单机模式</p>
+</li>
+<li><p>普通集群模式</p>
+</li>
+<li><p>镜像集群模式</p>
+</li>
+</ul>
+<p>单机模式单独运行一个<code>rabbitmq</code>实例，而集群模式需要创建多个<code>rabbitmq</code>实例。</p>
+<h4 id="普通集群模式"><a href="#普通集群模式" class="headerlink" title="普通集群模式"></a>普通集群模式</h4><p><strong>概念：</strong></p>
+<p>默认的集群模式。需要创建多个<code>RabbitMQ</code>节点。但对于<code>Queue</code>和消息来说，只存在于其中一个节点，其他节点仅同步元数据，即队列的结构信息。</p>
+<p>当消息进入<code>Queue</code>后，如果<code>Consumer</code>从创建Queue的这个节点消费消息时，可以直接取出来；但如果<code>consumer</code>连接的是其他节点，那<code>rabbitmq</code>会把<code>queue</code>中的消息从创建它的节点中取出并经过连接节点转发后再发送给<code>consumer</code>。</p>
+<p>所以<code>consumer</code>应尽量连接每一个节点。并针对同一个逻辑队列，要在多个节点建立物理<code>Queue</code>。否则无论<code>consumer</code>连接哪个节点，都会从创建<code>queue</code>的节点获取消息，会产生瓶颈。</p>
+<p><img src="https://i.loli.net/2021/04/16/Andp5TIB43vo91O.png" alt="0.png"></p>
+<p><strong>特点：</strong></p>
+<p>1）<code>Exchange</code>的元数据信息在所有节点上是一致的，而<code>Queue</code>（存放消息的队列）的完整数据则只会存在于创建它的那个节点上。其他节点只知道这个<code>queue</code>的 metadata信息和一个指向<code>queue</code>的<code>owner node</code>的指针；</p>
+<p>2）<code>RabbitMQ</code>集群会始终同步四种类型的内部元数据（类似索引）：</p>
+<ul>
+<li><p>队列元数据：队列名称和它的属性</p>
+</li>
+<li><p>交换器元数据：交换器名称、类型和属性</p>
+</li>
+<li><p>绑定元数据：一张简单的表格展示了如何将消息路由到队列</p>
+</li>
+<li><p><code>vhost</code>元数据：为<code>vhost</code>内的队列、交换器和绑定提供命名空间和安全属性</p>
+</li>
+</ul>
+<p>因此，当用户访问其中任何一个<code>RabbitMQ</code>节点时，通过<code>rabbitmqctl</code>查询到的元数据信息都是相同的。</p>
+<p>3）无法实现高可用性，当创建<code>queue</code>的节点故障后，其他节点是无法取到消息实体的。如果做了消息持久化，那么得等创建<code>queue</code>的节点恢复后，才可以被消费。如果没有持久化的话，就会产生消息丢失的现象。</p>
+<h4 id="镜像集群模式"><a href="#镜像集群模式" class="headerlink" title="镜像集群模式"></a>镜像集群模式</h4><p><strong>概念：</strong></p>
+<p>把队列做成镜像队列，让各队列存在于多个节点中，属于<code>RabbitMQ</code>的高可用性方案。镜像模式和普通模式的不同在于，<code>queue</code>和<code>message</code>会在集群各节点之间同步，而不是在<code>consumer</code>获取数据时临时拉取。</p>
+<p><strong>特点：</strong></p>
+<p>1）实现了高可用性。部分节点挂掉后，不会影响<code>rabbitmq</code>的使用</p>
+<p>2）降低了系统性能。镜像队列数量过多，大量的消息同步也会加大网络带宽开销</p>
+<p>3）适合对可用性要求较高的业务场景</p>
+<h3 id="RabbitMQ普通集群部署"><a href="#RabbitMQ普通集群部署" class="headerlink" title="RabbitMQ普通集群部署"></a>RabbitMQ普通集群部署</h3><h5 id="1、拉镜像"><a href="#1、拉镜像" class="headerlink" title="1、拉镜像"></a>1、拉镜像</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker pull rabbitmq:management</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="2、运行容器"><a href="#2、运行容器" class="headerlink" title="2、运行容器"></a>2、运行容器</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker run -d --hostname rabbit_host1 --name rabbitmq1 -p 15672:15672 -p 5672:5672 -e RABBITMQ_ERLANG_COOKIE=<span class="string">&#x27;rabbitmq_cookie&#x27;</span> rabbitmq:management</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker run -d --hostname rabbit_host2 --name rabbitmq2 -p 5673:5672 --<span class="built_in">link</span> rabbitmq1:rabbit_host1 -e RABBITMQ_ERLANG_COOKIE=<span class="string">&#x27;rabbitmq_cookie&#x27;</span> rabbitmq:management</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker run -d --hostname rabbit_host3 --name rabbitmq3 -p 5674:5672 --<span class="built_in">link</span> rabbitmq1:rabbit_host1 --<span class="built_in">link</span> rabbitmq2:rabbit_host2 -e RABBITMQ_ERLANG_COOKIE=<span class="string">&#x27;rabbitmq_cookie&#x27;</span> rabbitmq:management</span></span><br></pre></td></tr></table></figure>
+
+<p>主要参数：</p>
+<ul>
+<li><p>-p 15672:15672	<code>management</code>界面管理访问端口</p>
+</li>
+<li><p>-p 5672:5672    <code>amqp</code>访问端口</p>
+</li>
+<li><p>–link   容器之间连接</p>
+</li>
+</ul>
+<p><code>Erlang Cookie</code>值必须相同，也就是一个集群内<code>RABBITMQ_ERLANG_COOKIE</code>参数的值必须相同。因为<code>RabbitMQ</code>是用<code>Erlang</code>实现的，<code>Erlang Cookie</code>相当于不同节点之间通讯的密钥，<code>Erlang</code>节点通过交换<code>Erlang Cookie</code>获得认证。</p>
+<h5 id="3、加入节点到集群"><a href="#3、加入节点到集群" class="headerlink" title="3、加入节点到集群"></a>3、加入节点到集群</h5><p>设置节点1：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker <span class="built_in">exec</span> -it myrabbit1 bash</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">rabbitmqctl stop_app</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">rabbitmqctl reset</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">rabbitmqctl start_app</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="built_in">exit</span></span></span><br></pre></td></tr></table></figure>
+
+<p>设置节点2，加入到集群：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker <span class="built_in">exec</span> -it myrabbit2 bash</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">rabbitmqctl stop_app</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">rabbitmqctl reset</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">rabbitmqctl join_cluster --ram rabbit@rabbitmq_host1</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">rabbitmqctl start_app</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="built_in">exit</span></span></span><br></pre></td></tr></table></figure>
+
+<p>设置节点3，加入到集群：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">docker <span class="built_in">exec</span> -it myrabbit3 bash</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">rabbitmqctl stop_app</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">rabbitmqctl reset</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">rabbitmqctl join_cluster --ram rabbit@rabbitmq_host1</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">rabbitmqctl start_app</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="built_in">exit</span></span></span><br></pre></td></tr></table></figure>
+
+<p>主要参数：</p>
+<ul>
+<li>–ram   表示设置为内存节点，忽略次参数默认为磁盘节点。该配置启动了3个节点，1个磁盘节点和2个内存节点。</li>
+</ul>
+<p>设置好之后，使用<a href="http://ip:15672进行访问，默认账号密码：`guest/guest`">http://ip:15672进行访问，默认账号密码：`guest/guest`</a></p>
+<p><img src="https://i.loli.net/2021/04/16/sV3yDXfNcaST18k.png" alt="1.png"></p>
+<p> 可以看到，已经有多个节点了。</p>
+<h3 id="RabbitMQ镜像集群部署"><a href="#RabbitMQ镜像集群部署" class="headerlink" title="RabbitMQ镜像集群部署"></a>RabbitMQ镜像集群部署</h3><h5 id="1、策略policy概念"><a href="#1、策略policy概念" class="headerlink" title="1、策略policy概念"></a>1、策略policy概念</h5><p>使用<code>RabbitMQ</code>镜像功能，需要基于<code>RabbitMQ</code>策略来实现，策略<code>policy</code>是用来控制和修改群集范围的某个<code>vhost</code>队列行为和<code>Exchange</code>行为。策略<code>policy</code>就是要设置哪些<code>Exchange</code>或者<code>queue</code>的数据需要复制、同步，以及如何复制同步。</p>
+<p>为了使队列成为镜像队列，需要创建一个策略来匹配队列，设置策略有两个键“<code>ha-mode</code>和<code>ha-params</code>（可选）”。<code>ha-params</code>根据<code>ha-mode</code>设置不同的值，下表说明这些<code>key</code>的选项。</p>
+<p><img src="https://i.loli.net/2021/04/16/gwd83cNSI7h1orZ.png" alt="2.png"></p>
+<h5 id="2、添加策略"><a href="#2、添加策略" class="headerlink" title="2、添加策略"></a>2、添加策略</h5><p>登录rabbitmq管理页面 ——&gt; Admin ——&gt; Policies ——&gt; Add &#x2F; update a policy</p>
+<p><img src="https://i.loli.net/2021/04/16/jV7H18gLonJaGDu.png" alt="3.png"></p>
+<ul>
+<li><p>name：随便取，策略名称</p>
+</li>
+<li><p>Pattern：<code>^</code>匹配符，只有一个<code>^</code>代表匹配所有</p>
+</li>
+<li><p>Definition：<code>ha-mode=all</code>为匹配类型，分为3种模式：<code>all</code>（表示所有的<code>queue</code>）</p>
+</li>
+</ul>
+<p>或者使用命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">rabbitmqctl set_policy ha-all <span class="string">&quot;^&quot;</span> <span class="string">&#x27;&#123;&quot;ha-mode&quot;:&quot;all&quot;&#125;&#x27;</span></span></span><br></pre></td></tr></table></figure>
+
+<h5 id="3、查看效果"><a href="#3、查看效果" class="headerlink" title="3、查看效果"></a>3、查看效果</h5><p>此策略会同步所在同一<code>VHost</code>中的交换器和队列数据。设置好<code>policy</code>之后，使用<a href="http://ip:15672再次进行访问，可以看到队列镜像同步。">http://ip:15672再次进行访问，可以看到队列镜像同步。</a></p>
+<p><img src="https://i.loli.net/2021/04/16/hazUZvgj9NCsobG.png" alt="4.png"></p>
+<h2 id="Springboot配置RabbitMQ集群"><a href="#Springboot配置RabbitMQ集群" class="headerlink" title="Springboot配置RabbitMQ集群"></a>Springboot配置RabbitMQ集群</h2><h5 id="1、配置RabbitMQ单机"><a href="#1、配置RabbitMQ单机" class="headerlink" title="1、配置RabbitMQ单机"></a>1、配置RabbitMQ单机</h5><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">　　<span class="attr">rabbitmq:</span></span><br><span class="line">　　　　<span class="attr">host:</span> <span class="string">localhost</span></span><br><span class="line">　　　　<span class="attr">port:</span> <span class="number">5672</span></span><br><span class="line">　　　　<span class="attr">username:</span> <span class="string">username</span></span><br><span class="line">　　　　<span class="attr">password:</span> <span class="string">password</span></span><br></pre></td></tr></table></figure>
+
+<p>或者使用<code>addresses</code></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">　　<span class="attr">rabbitmq:</span></span><br><span class="line">　　　　<span class="string">addresses:ip1:port1</span></span><br><span class="line">　　　　<span class="attr">username:</span> <span class="string">username</span></span><br><span class="line">　　　　<span class="attr">password:</span> <span class="string">password</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="2、配置RabbitMQ集群"><a href="#2、配置RabbitMQ集群" class="headerlink" title="2、配置RabbitMQ集群"></a>2、配置RabbitMQ集群</h5><p><code>addresses</code>节点用逗号分隔</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">　　<span class="attr">rabbitmq:</span></span><br><span class="line">　　　　<span class="string">addresses:ip1:port1,ip2:port2,ip3:port3</span></span><br><span class="line">　　　　<span class="attr">username:</span> <span class="string">username</span></span><br><span class="line">　　　　<span class="attr">password:</span> <span class="string">password</span></span><br></pre></td></tr></table></figure>
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2019/10/15/docker/docker%E9%83%A8%E7%BD%B2elk%E6%97%A5%E5%BF%97%E9%87%87%E9%9B%86%E7%B3%BB%E7%BB%9F%EF%BC%88tcp%E6%96%B9%E5%BC%8F%EF%BC%89/" title="docker部署elk日志采集系统（tcp方式）"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2019/04/22/mysql/mysql%E5%92%8Credis%E7%9A%84%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98/" title="mysql和redis的数据一致性问题"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

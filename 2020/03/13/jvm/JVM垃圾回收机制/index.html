@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>JVM 垃圾回收机制 | Hexo</title>
+  <meta name="description" content="JVM 垃圾回收机制GC 作用垃圾回收GC（Garbage Collection）是JVM垃圾回收器提供的一种用于在空闲时间不定时回收无任何对象引用的对象占据的内存空间的一种机制，目的是为了清除不再使用的对象，从而释放内存空间。因为程序在运行过程中会不断的分配内存空间，如果不进行垃圾回收，内存迟早会被消耗空。除非内存无限大，我们可以任意的分配而不回收，否则垃圾回收是必须的。 对象引用关系从JDK">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JVM 垃圾回收机制">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2020/03/13/jvm/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="JVM 垃圾回收机制GC 作用垃圾回收GC（Garbage Collection）是JVM垃圾回收器提供的一种用于在空闲时间不定时回收无任何对象引用的对象占据的内存空间的一种机制，目的是为了清除不再使用的对象，从而释放内存空间。因为程序在运行过程中会不断的分配内存空间，如果不进行垃圾回收，内存迟早会被消耗空。除非内存无限大，我们可以任意的分配而不回收，否则垃圾回收是必须的。 对象引用关系从JDK">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/03/06/8ZcgCutHnGMUXzw.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/06/YRdJEToj183wrUQ.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/06/1jrLxXva6zeWtFI.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/06/xDK29TEaC8tBVdg.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/06/cgHL89Al3DSIJ5V.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/06/5uGXt3V1hnYOesa.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/06/OnzBkfvbQAoqX3y.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/06/WiJ8eX3FMmvzVYt.png">
+<meta property="article:published_time" content="2020-03-13T13:11:12.000Z">
+<meta property="article:modified_time" content="2024-02-14T11:20:05.004Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="jvm">
+<meta property="article:tag" content="垃圾回收">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/03/06/8ZcgCutHnGMUXzw.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2020/03/13/jvm/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E6%9C%BA%E5%88%B6/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-jvm/JVM垃圾回收机制" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      JVM 垃圾回收机制
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2020/03/13/jvm/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E6%9C%BA%E5%88%B6/" class="article-date">
+	  <time datetime="2020-03-13T13:11:12.000Z" itemprop="datePublished">2020-03-13</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/jvm/">jvm</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/jvm/" rel="tag">jvm</a>, <a class="article-tag-link-link" href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" rel="tag">垃圾回收</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2020/03/13/jvm/JVM%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E6%9C%BA%E5%88%B6/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="JVM-垃圾回收机制"><a href="#JVM-垃圾回收机制" class="headerlink" title="JVM 垃圾回收机制"></a>JVM 垃圾回收机制</h1><h2 id="GC-作用"><a href="#GC-作用" class="headerlink" title="GC 作用"></a>GC 作用</h2><p>垃圾回收<code>GC</code>（<code>Garbage Collection</code>）是<code>JVM</code>垃圾回收器提供的一种用于在空闲时间不定时回收无任何对象引用的对象占据的内存空间的一种机制，目的是为了清除不再使用的对象，从而释放内存空间。因为程序在运行过程中会不断的分配内存空间，如果不进行垃圾回收，内存迟早会被消耗空。除非内存无限大，我们可以任意的分配而不回收，否则垃圾回收是必须的。</p>
+<h2 id="对象引用关系"><a href="#对象引用关系" class="headerlink" title="对象引用关系"></a>对象引用关系</h2><p>从<code>JDK 1.2</code>版本开始，Java 存在4种对象引用关系。什么的对象引用关系，决定了其是否需要被垃圾回收，以及被回收的时机。详见 <a href>对象引用关系总结</a>。</p>
+<p> 1）强引用（Strong Reference）：如 “<code>Object obj = new Object()</code>”，这类引用是 Java 程序中最普遍的。只要强引用还存在，垃圾收集器就永远不会回收掉被引用的对象。</p>
+<p> 2）软引用（Soft Reference）：它用来描述一些可能还有用，但并非必须的对象。在系统内存不够用时，这类引用关联的对象将被垃圾收集器回收。JDK1.2 之后提供了 SoftReference 类来实现软引用。</p>
+<p> 3）弱引用（Weak Reference）：它也是用来描述非必须对象的，但它的强度比软引用更弱些，被弱引用关联的对象只能生存到下一次垃圾收集发生之前。当垃圾收集器工作时，无论当前内存是否足够，都会回收掉只被弱引用关联的对象。在 JDK1.2 之后，提供了<code>WeakReference</code>类来实现弱引用。</p>
+<p> 4）虚引用（Phantom Reference）：最弱的一种引用关系，完全不会对其生存时间构成影响，也无法通过虚引用来取得一个对象实例。为一个对象设置虚引用关联的唯一目的是希望能在这个对象被收集器回收时收到一个系统通知。JDK1.2 之后提供了<code>PhantomReference</code>类来实现虚引用。</p>
+<h2 id="对象存活分析算法"><a href="#对象存活分析算法" class="headerlink" title="对象存活分析算法"></a>对象存活分析算法</h2><p>Java 语言规范没有明确说明 JVM 使用哪种垃圾回收算法，但是任何一种垃圾回收算法一般要做两件基本的事情：</p>
+<p>1）找到所有存活对象。</p>
+<p>2）回收被无用对象占用的内存空间，使该空间可被程序再次使用。</p>
+<p>因此，垃圾收集器在对堆区和方法区进行回收前，首先要确定这些区域的对象哪些可以被回收，哪些还不能回收，这就需要先判断对象是否存活。常用的对象存活判定算法如下：</p>
+<ul>
+<li><strong>引用计数算法（Reference Counting）</strong></li>
+</ul>
+<p>引用计数是垃圾收集器中的早期策略，这种方法很简单。它实际上是通过在每个对象头中分配一个空间来保存该对象被引用的次数。当一个对象被创建时，将其被引用的次数设置为1。当任何其它变量被赋值为这个对象的引用时，计数加1（比如：<code>a = b</code>，则b引用的对象实例的计数+1）。但当一个对象实例的某个引用超过了生命周期或者被赋值为一个新值时，也就是删除对该对象的引用时，对象实例的引用计数-1。当该对象的引用计数为0时，那么该对象就会被回收。</p>
+<p>优点：引用计数收集器执行简单，判定效率高，交织在程序运行中。对程序不被长时间打断的实时环境比较有利。</p>
+<p>缺点：无法检测对象之间的循环引用关系。同时，引用计数器增加了程序执行的开销。所以 Java 语言并没有选择这种算法进行垃圾回收。</p>
+<p>如下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ReferenceTest</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">    </span><br><span class="line">        TestObject object1=<span class="keyword">new</span> <span class="title class_">TestObject</span>();</span><br><span class="line">        TestObject object2=<span class="keyword">new</span> <span class="title class_">TestObject</span>();</span><br><span class="line">        </span><br><span class="line">        object1.object=object2;</span><br><span class="line">        object2.object=object1;</span><br><span class="line">        </span><br><span class="line">        object1=<span class="literal">null</span>;</span><br><span class="line">        object2=<span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TestObject</span>&#123;</span><br><span class="line">     TestObject object;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码是用来验证引用计数算法不能检测出循环引用。最后面两句将<code>object1</code>和<code>object2</code>赋值为<code>null</code>，也就是说<code>object1</code>和<code>object2</code>指向的对象已经不可能再被访问，但是由于它们互相引用对方，导致它们的引用计数器都不为 0，那么垃圾收集器就永远不会回收它们。</p>
+<p>引用计数垃圾收集机制是在引用计数变化为 0 的即刻发生，而且只针对某一个对象以及它所依赖的其它对象。所以，我们一般也称呼引用计数垃圾收集为直接的垃圾收集机制。而采用引用计数的垃圾收集机制将垃圾收集的开销分摊到整个应用程序的运行当中，而不是在进行垃圾收集时，要挂起整个应用的运行，直到对堆中所有对象的处理都结束。因此，采用引用计数的垃圾收集不属于严格意义上的 “<code>Stop-The-World</code>“ 的垃圾收集机制。</p>
+<ul>
+<li><strong>可达性分析算法（根搜索算法）</strong></li>
+</ul>
+<p>可达性分析算法是从离散数学中的图论引入的，程序把所有的引用关系看作一张图，从一个节点<code>GC ROOT</code>开始，寻找对应的引用节点，找到这个节点以后，继续寻找这个节点的引用节点，当所有的引用节点寻找完毕之后，剩余的没有被引用到的节点，则被认为是无用的节点，将会被判定为是可回收的对象。</p>
+<p><img src="https://i.loli.net/2021/03/06/8ZcgCutHnGMUXzw.png" alt="0.png"></p>
+<p>在 Java 语言中，将某些特殊的对象定义为<code>GC Roots</code>，包括下面几种：</p>
+<p>1）虚拟机栈中引用的对象（栈帧中的本地变量表）；</p>
+<p>2）方法区中类静态属性引用的对象；</p>
+<p>3）方法区中常量引用的对象；</p>
+<p>4）本地方法栈中 JNI（<code>Native</code>方法）引用的对象。</p>
+<p>关于标记引用节点需要注意：</p>
+<p>1）开始进行标记前，需要先暂停应用线程，否则如果对象图一直在变化的话是无法真正去遍历它的。暂停应用线程以便 JVM 可以更好地分析对象引用关系，这种情况被称之为安全点（Safe Point），这会触发一次<code>Stop The World(STW)</code>暂停。触发安全点的原因很多，但最常见的就是垃圾回收了。</p>
+<p>2）暂停时间的长短并不取决于堆内对象的多少也不是堆的大小，而是存活对象的多少。因此，调高堆的大小并不会影响到标记阶段的时间长短。</p>
+<p>另外，可达性分析算法能正确处理循环引用，保证每个活对象只会被访问一次就能确定其存活性。对象图里是否存在循环引用，可达性分析都能正确判断对象的存活与否。</p>
+<h2 id="垃圾回收（GC）算法"><a href="#垃圾回收（GC）算法" class="headerlink" title="垃圾回收（GC）算法"></a>垃圾回收（GC）算法</h2><ul>
+<li><strong>标记-清除算法（Mark-Sweep）</strong></li>
+</ul>
+<p>这是最基础的垃圾回收算法，之所以说它是最基础的是因为它最容易实现，思想也是最简单的。标记-清除算法分为两个阶段：标记阶段和清除阶段。标记阶段的任务是标记出所有需要被回收的对象，清除阶段就是回收被标记的对象所占用的空间。具体过程如下图所示：</p>
+<p><img src="https://i.loli.net/2021/03/06/YRdJEToj183wrUQ.png" alt="1.png"></p>
+<p>标记-清除算法采用从根集合（<code>GC Roots</code>）进行扫描，<strong>对存活的对象进行标记，标记完毕后，再扫描整个空间中未被标记的对象，进行回收</strong>，如下图所示。标记-清除算法不需要进行对象的移动，只需对不存活的对象进行处理，在存活对象比较多的情况下极为高效。</p>
+<p><img src="https://i.loli.net/2021/03/06/1jrLxXva6zeWtFI.png" alt="4.png"></p>
+<p>优点：不需要进行对象的移动，并且仅对不存活的对象进行处理，在存活对象比较多的情况下极为高效。</p>
+<p>缺点：1）标记和清除过程效率都不高。这种方法需要使用一个空闲列表来记录所有的空闲区域及大小，对空闲列表的管理也会增加工作量。2）标记清除后<strong>会产生大量不连续的内存碎片</strong>。碎片太多可能会导致后续过程中需要为大对象分配空间时无法找到足够的空间而再次触发新的垃圾回收动作。</p>
+<ul>
+<li><strong>复制算法（Copying）</strong></li>
+</ul>
+<p>为了解决 Mark-Sweep 算法的缺陷，Copying 算法被提了出来。它将可用内存按容量划分为大小相等的两块，每次只使用其中的一块。当这一块的内存用完了，就将还存活着的对象复制到另外一块上面，然后再把已使用的内存空间一次清理掉，这样一来就不容易产生内存碎片的问题。具体过程如下图所示：</p>
+<p><img src="https://i.loli.net/2021/03/06/xDK29TEaC8tBVdg.png" alt="8.png"></p>
+<p>这种算法虽然实现简单，运行高效也不容易产生内存碎片，但是内存使用率却大大降低，将能够使用的内存缩减到原来的一半。另外，Copying 算法的效率跟存活对象的数目有很大的关系，如果存活对象很多，那么 Copying 算法的效率将大大降低。</p>
+<p>复制算法的提出是为了克服句柄的开销和解决内存碎片的问题。它开始时把堆分成一个对象面和多个空闲面，程序从对象面为对象分配空间，当对象满了，基于Copying 算法的垃圾收集就从根集合（<code>GC Roots</code>）中扫描活动对象，并将每个活动对象复制到空闲面，使得活动对象所占的内存之间没有空闲区域，这样空闲面变成了对象面，而原来的对象面变成了空闲面，程序会在新的对象面分配内存。</p>
+<p><img src="https://i.loli.net/2021/03/06/cgHL89Al3DSIJ5V.png" alt="5.png"></p>
+<ul>
+<li><strong>标记—整理算法（Mark-compact）</strong></li>
+</ul>
+<p>为了解决 Copying 算法的缺陷，充分利用内存空间，提出了 Mark-Compact 算法。该算法的标记阶段和 Mark-Sweep 算法一样，但是在完成标记之后，它不是直接清理可回收对象，而是<strong>将存活对象向一端移动，然后清理掉存活对象端边界以外的内存</strong>。在把存活对象集中向某端移动过程中，不需要处理被标记为垃圾的对象，因为迟早会被回收，所以可以直接覆盖它们的内存空间。当存活对象移动完毕，除开存活对象端边界以外的剩余内存都是可回收的。</p>
+<p>标记-整理算法是在标记-清除算法的基础上，又进行了对存活对象的移动，因此代价更高，但是却解决了内存碎片的问题。具体流程如下图：</p>
+<p><img src="https://i.loli.net/2021/03/06/5uGXt3V1hnYOesa.png" alt="6.png"></p>
+<ul>
+<li><strong>分代收集算法（Generational Collection）</strong></li>
+</ul>
+<p>分代收集算法是目前大部分 JVM 垃圾收集器采用的算法。它的核心思想是根据对象存活的生命周期将内存划分为若干个不同的区域。一般情况下<strong>将堆区划分为新生代（Young Generation）和老年代（Tenured Generation），在堆区之外还有一个永久代（Permanet Generation）</strong>。新生代的特点是每次垃圾回收时都有大量对象需要被回收，而老年代的特点是每次垃圾回收时只有少量对象需要被回收，那么就可以根据不同代的特点采取最适合的收集算法。</p>
+<p>目前大部分垃圾收集器对于<strong>新生代都采取 Copying 算法</strong>，因为新生代中每次垃圾回收都要回收大部分对象，也就是说需要复制的操作次数较少，但是实际项目中并不是按照 1 ：1 的比例来划分新生代空间的。一般来说是将新生代划分为一块较大的<code>Eden</code>空间和两块较小的<code>Survivor</code>空间（通常为 8 : 1 : 1）。每次使用<code>Eden</code>空间和其中的一块<code>Survivor</code>空间。当进行垃圾回收时，将<code>Eden</code>和<code>Survivor</code>中还存活的对象复制到另一块<code>Survivor</code>空间中，然后清理掉<code>Eden</code>和刚才使用过的<code>Survivor</code>空间。</p>
+<p>而由于<strong>老年代的特点是每次回收都只回收少量对象，所以一般使用的是 Mark-Compact 算法</strong>。</p>
+<p><img src="https://i.loli.net/2021/03/06/OnzBkfvbQAoqX3y.png" alt="7.png"></p>
+<p><strong>1、年轻代（Young Generation）的回收算法 (回收主要以 Copying 为主)</strong></p>
+<p>a）所有新生成的对象首先都是放在年轻代的。年轻代的目标就是尽可能快速的收集掉那些生命周期短的对象。</p>
+<p>b）新生代内存按照 8 : 1 : 1 的比例分为一个<code>eden</code>区和两个<code>survivor</code>（<code>survivor0</code>，<code>survivor1</code>）区。大部分对象在<code>Eden</code>区中生成。回收时先将<code>eden</code>区存活对象复制到一个<code>survivor0</code>区，然后清空<code>eden</code>区；当 survivor0 区也存放满了时，则将<code>eden</code>区和<code>survivor0</code>区存活对象复制到另一个<code>survivor1</code>区，然后清空<code>eden</code> 区和<code>survivor0</code>区，此时<code>survivor0</code>区是空的，然后将<code>survivor0</code>区和<code>survivor1</code>区交换，即保持<code>survivor1</code>区为空， 如此往复。当<code>Eden</code>区没有足够空间的时候就触发 jvm 发起一次<code>Minor GC</code>。</p>
+<p>c）当<code>survivor1</code>区不足以存放<code>eden</code>和<code>survivor0</code>的存活对象时，就将存活对象直接存放到老年代。若是老年代也满了就会触发一次<code>Full GC (Major GC)</code>，也就是新生代、老年代都进行回收。</p>
+<p>d）新生代发生的<code>GC</code>叫做<code>Minor GC</code>，<code>Minor GC</code>发生频率比较高，且不一定等<code>Eden</code>区满了才触发。</p>
+<p><strong>2、年老代（Old Generation）的回收算法（回收主要以 Mark-Compact 为主）</strong></p>
+<p>a）在年轻代中经历了多次垃圾回收后仍然存活的对象，就会被放到年老代中。因此，可以认为年老代中存放的都是一些生命周期较长的对象。</p>
+<p>b）内存比新生代也大很多（大概比例是 1 : 2），当老年代内存满时触发<code>Major GC</code>即<code>Full GC</code>，<code>Full GC</code>发生频率比较低，老年代对象存活时间比较长，存活率标记高。</p>
+<p><strong>3、持久代（Permanent Generation）也就是方法区的回收算法</strong></p>
+<p>持久代也称方法区，用于存放静态文件，如 Java 类、方法等。持久代对垃圾回收没有显著影响，但是有些应用可能动态生成或者调用一些<code>class</code>，例如<code>Hibernate</code>等，在这种时候需要设置一个比较大的持久代空间来存放这些运行过程中新增的类。</p>
+<p>方法区存储内容是否需要回收的判断条件不一样。方法区主要回收的内容有：废弃常量和无用的类。对于废弃常量也可通过引用的可达性来判断，但是对于无用的类则需要同时满足下面 3 个条件：</p>
+<p>a）该类所有的实例都已经被回收，也就是 Java 堆中不存在该类的任何实例；</p>
+<p>b）加载该类的<code>ClassLoader</code>已经被回收；</p>
+<p>c）该类对应的<code>java.lang.Class</code>对象没有在任何地方被引用，无法在任何地方通过反射访问该类的方法。</p>
+<p>永久代空间在 Java 8 中已经被移除。取而代之的是元空间（<code>MetaSpace</code>）。因此不会再出现 “<code>java.lang.OutOfMemoryError: PermGen error</code>” 错误。</p>
+<h2 id="垃圾回收器"><a href="#垃圾回收器" class="headerlink" title="垃圾回收器"></a>垃圾回收器</h2><p>按执行机制划分，Java 有四种类型的垃圾回收器，分别是：串行垃圾回收器（Serial Garbage Collector），并行垃圾回收器（Parallel Garbage Collector），并发标记扫描垃圾回收器（CMS Garbage Collector），G1垃圾回收器（G1 Garbage Collector）。</p>
+<p>每种垃圾回收器都有自己的特点，适合不同的应用场景。我们可以通过设置不同的<code>JVM</code>参数选择不同的垃圾回收器。</p>
+<ul>
+<li><strong>串行垃圾回收器（Serial Garbage Collector）</strong></li>
+</ul>
+<p>它为单线程环境设计，只使用一个单独的线程进行垃圾回收，运行时会冻结所有应用程序线程进行工作，可能不适合服务器环境。它最适合的是简单的命令行程序，是<code>client</code>级别默认的<code>GC</code>方式。</p>
+<p>通过<code>JVM</code>参数<code>-XX:+UseSerialGC</code>可以使用串行垃圾回收器。</p>
+<ul>
+<li><strong>并行垃圾回收器（Parallel Garbage Collector）</strong></li>
+</ul>
+<p>与串行垃圾回收器不同，它使用多线程进行垃圾回收。但当执行垃圾回收时，它也会冻结所有的应用程序线程。它是<code>JVM</code>默认垃圾回收器。适用于多<code>CPU</code>、对暂停时间要求较短的应用上，是<code>server</code>级别默认采用的<code>GC</code>方式。</p>
+<p>通过<code>JVM</code>参数<code>-XX:+UseParallelGC</code>来强制指定，用<code>-XX:ParallelGCThreads=4</code>来指定线程数。</p>
+<ul>
+<li><strong>并发标记扫描垃圾回收器（CMS Garbage Collector）</strong></li>
+</ul>
+<p>并发标记垃圾回收使用多线程扫描堆内存，标记需要清理的实例并清理被标记过的实例。并发标记垃圾回收器只会在下面两种情况持有应用程序所有线程。</p>
+<p>1）当标记的引用对象在<code>Tenured</code>区域；</p>
+<p>2）在进行垃圾回收的时候，堆内存的数据被并发改变。</p>
+<p>相比并行垃圾回收器，并发标记扫描垃圾回收器使用更多的<code>CPU</code>来确保程序的吞吐量。如果可以分配更多<code>CPU</code>，那么并发标记扫描垃圾回收器是更好的选择。</p>
+<p>通过<code>JVM</code>参数<code>-XX:+USeParNewGC</code>使用并发标记扫描垃圾回收器。</p>
+<ul>
+<li><strong>G1垃圾回收器（G1 Garbage Collector）</strong></li>
+</ul>
+<p><code>G1</code>是一种服务器端的垃圾收集器，应用在多处理器和大容量内存环境中，在实现高吞吐量的同时，尽可能的满足垃圾收集暂停时间的要求。</p>
+<p>它是专门针对以下应用场景设计的：像<code>CMS</code>收集器一样，能与应用程序线程并发执行。整理空闲空间更快，需要<code>GC</code>停顿时间更好预测。不希望牺牲大量的吞吐性能，不需要更大的<code>Java Heap</code>。</p>
+<p><code>G1</code>收集器的设计目标是取代<code>CMS</code>收集器，它同<code>CMS</code>相比，在以下方面表现的更出色： </p>
+<p>1）<code>G1</code>是一个有整理内存过程的垃圾收集器，不会产生很多内存碎片。 </p>
+<p>2）<code>G1</code>的<code>Stop The World(STW)</code>更可控，<code>G1</code>在停顿时间上添加了预测机制，用户可以指定期望停顿时间。</p>
+<hr>
+<p>以上各种GC机制是需要组合使用的，指定方式由下表所示：</p>
+<p><img src="https://i.loli.net/2021/03/06/WiJ8eX3FMmvzVYt.png" alt="2.png"></p>
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2020/03/17/jvm/JVM%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6/" title="JVM 类加载机制"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2020/03/08/jvm/JVM%E5%B8%B8%E8%A7%81%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%99%A8/" title="JVM垃圾回收器总结"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

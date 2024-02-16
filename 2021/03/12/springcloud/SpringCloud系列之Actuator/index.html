@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>SpringCloud系列之Actuator | Hexo</title>
+  <meta name="description" content="SpringCloud系列之Actuator简介微服务系统通常是分布式部署的，大部分服务都运行在不同的机器上，彼此通过服务接口交互调用，业务会经过多个微服务的处理和传递，如果期间出现了异常需要快速定位，就需要对微服务的状态进行实时监控。 spring-boot-starter-actuator，这个模块可以自动为Spring Boot创建的应用构建一系列的用于监控的端点。Actuator是Spri">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SpringCloud系列之Actuator">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2021/03/12/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BActuator/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="SpringCloud系列之Actuator简介微服务系统通常是分布式部署的，大部分服务都运行在不同的机器上，彼此通过服务接口交互调用，业务会经过多个微服务的处理和传递，如果期间出现了异常需要快速定位，就需要对微服务的状态进行实时监控。 spring-boot-starter-actuator，这个模块可以自动为Spring Boot创建的应用构建一系列的用于监控的端点。Actuator是Spri">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-03-12T08:12:24.000Z">
+<meta property="article:modified_time" content="2024-02-14T11:32:17.900Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="srpingcloud">
+<meta property="article:tag" content="监控">
+<meta name="twitter:card" content="summary">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2021/03/12/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BActuator/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-springcloud/SpringCloud系列之Actuator" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      SpringCloud系列之Actuator
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2021/03/12/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BActuator/" class="article-date">
+	  <time datetime="2021-03-12T08:12:24.000Z" itemprop="datePublished">2021-03-12</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/srpingcloud/" rel="tag">srpingcloud</a>, <a class="article-tag-link-link" href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" rel="tag">监控</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2021/03/12/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BActuator/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="SpringCloud系列之Actuator"><a href="#SpringCloud系列之Actuator" class="headerlink" title="SpringCloud系列之Actuator"></a>SpringCloud系列之Actuator</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>微服务系统通常是分布式部署的，大部分服务都运行在不同的机器上，彼此通过服务接口交互调用，业务会经过多个微服务的处理和传递，如果期间出现了异常需要快速定位，就需要对微服务的状态进行实时监控。</p>
+<p><code>spring-boot-starter-actuator</code>，这个模块可以自动为<code>Spring Boot</code>创建的应用构建一系列的用于监控的端点。<code>Actuator</code>是<code>Spring Boot</code>提供的对应用系统的自省和监控的集成功能，可以查看应用配置的详细信息，例如自动化配置信息、创建的<code>Spring beans</code>以及一些环境属性等。使用<code>Actuator</code>可以很方便地对微服务状况进行监控。</p>
+<h2 id="监控端点"><a href="#监控端点" class="headerlink" title="监控端点"></a>监控端点</h2><p><code>Actuator</code>监控端点分为原生端点和用户自定义端点。自定义端点可以让用户自定义一些比较关心的指标，在运行期进行监控。而原生端点是由<code>actuator</code>提供的<code>web</code>接口，用来了解服务运行时的内部状况。原生端点可以分成三类：</p>
+<ul>
+<li>应用配置类：用于查看服务在运行时的静态信息，比如自动配置信息，<code>Spring Bean</code>信息、配置文件信息、环境信息、请求映射等；</li>
+<li>度量指标类：主要是服务运行时的动态信息，比如堆栈、请求链、健康指标、<code>metrics</code>信息等；</li>
+<li>操作控制类：主要是指<code>shutdown</code>，用户可以发送请求关闭应用的监控功能。</li>
+</ul>
+<p><code>Actuator</code>提供了13个接口，如下表所示：</p>
+<table>
+<thead>
+<tr>
+<th align="center">HTTP方法</th>
+<th align="center">路径</th>
+<th align="center">描述</th>
+<th align="center">鉴权</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">GET</td>
+<td align="center">&#x2F;autoconfig</td>
+<td align="center">查看自动配置的使用情况</td>
+<td align="center">true</td>
+</tr>
+<tr>
+<td align="center">GET</td>
+<td align="center">&#x2F;configprops</td>
+<td align="center">查看配置属性，包括默认配置</td>
+<td align="center">true</td>
+</tr>
+<tr>
+<td align="center">GET</td>
+<td align="center">&#x2F;beans</td>
+<td align="center">查看bean及其关系列表</td>
+<td align="center">true</td>
+</tr>
+<tr>
+<td align="center">GET</td>
+<td align="center">&#x2F;dump</td>
+<td align="center">打印线程栈</td>
+<td align="center">true</td>
+</tr>
+<tr>
+<td align="center">GET</td>
+<td align="center">&#x2F;env</td>
+<td align="center">查看所有环境变量</td>
+<td align="center">true</td>
+</tr>
+<tr>
+<td align="center">GET</td>
+<td align="center">&#x2F;env&#x2F;{name}</td>
+<td align="center">查看具体变量值</td>
+<td align="center">true</td>
+</tr>
+<tr>
+<td align="center">GET</td>
+<td align="center">&#x2F;health</td>
+<td align="center">查看应用健康指标</td>
+<td align="center">false</td>
+</tr>
+<tr>
+<td align="center">GET</td>
+<td align="center">&#x2F;info</td>
+<td align="center">查看应用信息</td>
+<td align="center">false</td>
+</tr>
+<tr>
+<td align="center">GET</td>
+<td align="center">&#x2F;mappings</td>
+<td align="center">查看所有url映射</td>
+<td align="center">true</td>
+</tr>
+<tr>
+<td align="center">GET</td>
+<td align="center">&#x2F;metrics</td>
+<td align="center">查看应用基本指标</td>
+<td align="center">true</td>
+</tr>
+<tr>
+<td align="center">GET</td>
+<td align="center">&#x2F;metrics&#x2F;{name}</td>
+<td align="center">查看具体指标</td>
+<td align="center">true</td>
+</tr>
+<tr>
+<td align="center">POST</td>
+<td align="center">&#x2F;shutdown</td>
+<td align="center">关闭应用</td>
+<td align="center">true</td>
+</tr>
+<tr>
+<td align="center">GET</td>
+<td align="center">&#x2F;trace</td>
+<td align="center">查看基本追踪信息</td>
+<td align="center">true</td>
+</tr>
+</tbody></table>
+<h2 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h2><p>1）加入<code>pom</code>依赖</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-web<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-actuator<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>2）配置文件</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#启用监控</span></span><br><span class="line"><span class="attr">management:</span></span><br><span class="line">  <span class="attr">endpoints:</span></span><br><span class="line">    <span class="attr">web:</span></span><br><span class="line">      <span class="attr">exposure:</span></span><br><span class="line">        <span class="attr">include:</span> <span class="string">&quot;*&quot;</span>  <span class="comment">#开放所有端点health，info，metrics，通过actuator/端点名，就可以获取对应的信息。如果不配置，默认只打开health和info端点</span></span><br><span class="line">  <span class="attr">endpoint:</span></span><br><span class="line">    <span class="attr">health:</span></span><br><span class="line">      <span class="attr">show-details:</span> <span class="string">always</span>  <span class="comment">#未开启actuator/health时，我们获取到的信息是&#123;&quot;status&quot;:&quot;UP&quot;&#125;，status的值还有可能是 DOWN。开启后打印详细信息</span></span><br></pre></td></tr></table></figure>
+
+<p>3）启动服务，输入 <a target="_blank" rel="noopener" href="http://localhost:8081/actuator">http://localhost:8081/actuator</a> ，查看端点信息如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;_links&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;self&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;archaius&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/archaius&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;auditevents&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/auditevents&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;beans&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/beans&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;caches-cache&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/caches/&#123;cache&#125;&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;caches&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/caches&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;health&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/health&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;health-component-instance&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/health/&#123;component&#125;/&#123;instance&#125;&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;health-component&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/health/&#123;component&#125;&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;conditions&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/conditions&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;configprops&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/configprops&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;env&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/env&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;env-toMatch&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/env/&#123;toMatch&#125;&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;info&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/info&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;loggers&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/loggers&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;loggers-name&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/loggers/&#123;name&#125;&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;heapdump&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/heapdump&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;threaddump&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/threaddump&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;metrics-requiredMetricName&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/metrics/&#123;requiredMetricName&#125;&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;metrics&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/metrics&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;scheduledtasks&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/scheduledtasks&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;httptrace&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/httptrace&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;mappings&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/mappings&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;refresh&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/refresh&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;features&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/features&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;service-registry&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/service-registry&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;jolokia&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/jolokia&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;hystrix.stream&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;href&quot;</span><span class="punctuation">:</span><span class="string">&quot;http://127.0.0.1:8801/actuator/hystrix.stream&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;templated&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>4）输入<a target="_blank" rel="noopener" href="http://127.0.0.1:8801/actuator/health%EF%BC%8C%E6%9F%A5%E7%9C%8B%60health%60%E7%AB%AF%E7%82%B9%E4%BF%A1%E6%81%AF%E5%A6%82%E4%B8%8B%EF%BC%9A">http://127.0.0.1:8801/actuator/health，查看`health`端点信息如下：</a></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;status&quot;</span><span class="punctuation">:</span><span class="string">&quot;UP&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;details&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;diskSpace&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;status&quot;</span><span class="punctuation">:</span><span class="string">&quot;UP&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;details&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;total&quot;</span><span class="punctuation">:</span><span class="number">124945166336</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;free&quot;</span><span class="punctuation">:</span><span class="number">738893824</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;threshold&quot;</span><span class="punctuation">:</span><span class="number">10485760</span></span><br><span class="line">            <span class="punctuation">&#125;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;refreshScope&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;status&quot;</span><span class="punctuation">:</span><span class="string">&quot;UP&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;discoveryComposite&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;status&quot;</span><span class="punctuation">:</span><span class="string">&quot;UP&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;details&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;discoveryClient&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;status&quot;</span><span class="punctuation">:</span><span class="string">&quot;UP&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;details&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;services&quot;</span><span class="punctuation">:</span><span class="punctuation">[</span></span><br><span class="line"></span><br><span class="line">                        <span class="punctuation">]</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;eureka&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;description&quot;</span><span class="punctuation">:</span><span class="string">&quot;Eureka discovery client has not yet successfully connected to a Eureka server&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;status&quot;</span><span class="punctuation">:</span><span class="string">&quot;UP&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;details&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;applications&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line"></span><br><span class="line">                        <span class="punctuation">&#125;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">&#125;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;hystrix&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;status&quot;</span><span class="punctuation">:</span><span class="string">&quot;UP&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2021/03/18/springcloud/SpringCloud%E7%B3%BB%E5%88%97%E4%B9%8BAdmin/" title="SpringCloud系列之Admin"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2021/02/12/jvm/ThreadDump%E6%97%A5%E5%BF%97%E5%88%86%E6%9E%90%E6%A1%88%E4%BE%8B/" title="Thread Dump日志分析案例"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

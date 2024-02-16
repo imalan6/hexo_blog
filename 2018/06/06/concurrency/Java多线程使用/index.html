@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>Java多线程编程 | Hexo</title>
+  <meta name="description" content="Java多线程编程 多线程好处为了解决负载均衡问题，充分利用CPU资源。为了提高CPU的使用率，采用多线程的方式去同时完成几件事情而不互相干扰。为了处理大量的IO操作时或处理的情况需要花费大量的时间等等，比如：读写文件，视频图像的采集，处理等。 使用多线程的好处：  使用线程可以把占据时间长的程序中的任务放到后台去处理。 用户界面更加吸引人，这样比如用户点击了一个按钮去触发某件事件的处理，可以弹出">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java多线程编程">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2018/06/06/concurrency/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%BD%BF%E7%94%A8/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="Java多线程编程 多线程好处为了解决负载均衡问题，充分利用CPU资源。为了提高CPU的使用率，采用多线程的方式去同时完成几件事情而不互相干扰。为了处理大量的IO操作时或处理的情况需要花费大量的时间等等，比如：读写文件，视频图像的采集，处理等。 使用多线程的好处：  使用线程可以把占据时间长的程序中的任务放到后台去处理。 用户界面更加吸引人，这样比如用户点击了一个按钮去触发某件事件的处理，可以弹出">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/03/02/H1ZBXFaqveYuxim.jpg">
+<meta property="og:image" content="https://i.loli.net/2021/02/27/pZy3CdqFn5fK8wU.png">
+<meta property="og:image" content="https://i.loli.net/2021/02/27/Sktb8HpuPvI3oG1.jpg">
+<meta property="article:published_time" content="2018-06-06T13:36:26.000Z">
+<meta property="article:modified_time" content="2024-02-14T09:52:19.103Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="多线程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/03/02/H1ZBXFaqveYuxim.jpg">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2018/06/06/concurrency/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%BD%BF%E7%94%A8/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-concurrency/Java多线程使用" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Java多线程编程
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2018/06/06/concurrency/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%BD%BF%E7%94%A8/" class="article-date">
+	  <time datetime="2018-06-06T13:36:26.000Z" itemprop="datePublished">2018-06-06</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/java/">java</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/java/" rel="tag">java</a>, <a class="article-tag-link-link" href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" rel="tag">多线程</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2018/06/06/concurrency/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%BD%BF%E7%94%A8/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="Java多线程编程"><a href="#Java多线程编程" class="headerlink" title="Java多线程编程"></a>Java多线程编程</h1><p><img src="https://i.loli.net/2021/03/02/H1ZBXFaqveYuxim.jpg" alt="src_http___attach.bbs.miui.com_forum_201205_03_01400598djmyeczcskh2yr.jpg_refer_http___attach.bbs.miui.jpg"></p>
+<h2 id="多线程好处"><a href="#多线程好处" class="headerlink" title="多线程好处"></a>多线程好处</h2><p>为了解决负载均衡问题，充分利用CPU资源。为了提高CPU的使用率，采用多线程的方式去同时完成几件事情而不互相干扰。为了处理大量的IO操作时或处理的情况需要花费大量的时间等等，比如：读写文件，视频图像的采集，处理等。</p>
+<p>使用多线程的好处：</p>
+<ul>
+<li>使用线程可以把占据时间长的程序中的任务放到后台去处理。</li>
+<li>用户界面更加吸引人，这样比如用户点击了一个按钮去触发某件事件的处理，可以弹出一个进度条来显示处理的进度。</li>
+<li>程序的运行效率可能会提高。</li>
+<li>在一些等待的任务实现上如用户输入，文件读取和网络收发数据等，多线程就比较有用了。</li>
+</ul>
+<h2 id="线程的生命周期"><a href="#线程的生命周期" class="headerlink" title="线程的生命周期"></a>线程的生命周期</h2><p>线程的生命周期包含5个阶段，包括：新建、就绪、运行、阻塞、销毁。</p>
+<ul>
+<li>新建：就是刚使用<code>new</code>方法，创建出来的线程；</li>
+<li>就绪：就是调用线程的<code>start()</code>方法后，这时候线程处于等待 CPU 分配资源阶段，谁先抢到 CPU 资源，谁开始执行;</li>
+<li>运行：当就绪的线程被调度并获得 CPU 资源时，便进入运行状态，run 方法定义了线程的操作和功能;</li>
+<li>阻塞：在运行状态的时候，可能因为某些原因导致运行状态的线程变成了阻塞状态，比如<code>sleep()</code>、<code>wait()</code>之后线程就处于了阻塞状态，这个时候需要其他机制将处于阻塞状态的线程唤醒，比如调用<code>notify</code>或者<code>notifyAll()</code>方法。唤醒的线程不会立刻执行<code>run</code>方法，它们要再次等待 CPU 分配资源进入运行状态;</li>
+<li>销毁：如果线程正常执行完毕后或线程被提前强制性的终止或出现异常导致结束，那么线程就要被销毁，释放资源;</li>
+</ul>
+<p>完整的线程生命周期图如下：</p>
+<p><img src="https://i.loli.net/2021/02/27/pZy3CdqFn5fK8wU.png" alt="1223046-20190722214114154-276488899.png"></p>
+<p>Java划分更细一点的线程的状态在<code>java.lang.Thread.State</code>定义中有6种。</p>
+<ul>
+<li><p>New，线程被创建，未执行和运行的时候。</p>
+</li>
+<li><p>Runnable，不代表线程在跑，分为两种：被 cpu 执行的线程，随时可以被 cpu 执行的状态。</p>
+</li>
+<li><p>Blocked，线程阻塞，处于<code>synchronized</code>同步代码块或方法中被阻塞。</p>
+</li>
+<li><p>Waiting，等待的线程状态。线程当前不执行，如果被其他唤醒后会继续执行的状态。依赖另一个线程的通知。这个等待是一直等，没其他线程唤醒起不来。</p>
+</li>
+<li><p>Time Waiting，指定等待时间的等待线程的线程状态。带超时的方式：<code>Thread.sleep</code>，<code>Object.wait</code>，<code>Thread.join</code>，<code>LockSupport.parkNanos</code>，<code>LockSupport.parkUntil</code>。</p>
+</li>
+<li><p>Terminated，正常执行完毕或者出现异常终止的线程状态。</p>
+</li>
+</ul>
+<p>详细状态转换图如下：</p>
+<p><img src="https://i.loli.net/2021/02/27/Sktb8HpuPvI3oG1.jpg" alt="u_960461747,3849268958_fm_26_gp_0.jpg"></p>
+<h2 id="创建线程的方式"><a href="#创建线程的方式" class="headerlink" title="创建线程的方式"></a>创建线程的方式</h2><ul>
+<li>继承 Thread 类</li>
+</ul>
+<p>用户的线程类只须继承<code>Thread</code>类并重写其<code>run()</code>方法即可，通过调用用户线程类的<code>start()</code>方法启动用户线程</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">MyThread</span> <span class="keyword">extends</span> <span class="title class_">Thread</span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span>&#123;</span><br><span class="line"></span><br><span class="line">  	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestThread</span>&#123;</span><br><span class="line">  	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args）&#123;</span></span><br><span class="line"><span class="params">      	MyThread thread = new MyThread()</span>; <span class="comment">//创建用户线程对象</span></span><br><span class="line">      	thread.start(); <span class="comment">//启动用户线程</span></span><br><span class="line">      	thread.run(); <span class="comment">//主线程调用用户线程对象的run()方法</span></span><br><span class="line">  	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>实现 Runnable 接口</li>
+</ul>
+<p>当使用<code>Thread(Runnable thread)</code>方式创建线程对象时，须为该方法传递一个实现了<code>Runnable</code>接口的对象，这样创建的线程将调用实现<code>Runnable</code>接口的对象的<code>run()</code>方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestThread</span>&#123;</span><br><span class="line">  	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span>&#123;</span><br><span class="line">      	<span class="type">Mythread</span> <span class="variable">mt</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Mythread</span>();</span><br><span class="line">      	<span class="type">Thread</span> <span class="variable">t</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(mt);  <span class="comment">//创建用户线程</span></span><br><span class="line">       	t.start();  <span class="comment">//启动用户线程</span></span><br><span class="line">  	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Mythread</span> <span class="keyword">implements</span> <span class="title class_">Runnable</span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span>&#123;</span><br><span class="line">		<span class="comment">// 实现线程业务处理逻辑</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>至于哪个好，肯定是后者好，因为实现接口的方式比继承类的方式更灵活，也能减少程序之间的耦合度，是面向接口编程。</p>
+<h2 id="线程安全"><a href="#线程安全" class="headerlink" title="线程安全"></a>线程安全</h2><p>指在并发的情况之下，该代码经过多线程使用，线程的调度顺序不影响任何结果。</p>
+<p>线程安全也是有几个级别的：</p>
+<ul>
+<li><p>不可变</p>
+<p>像<code>String</code>、<code>Integer</code>、<code>Long</code>这些，都是<code>final</code>类型的类，任何一个线程都改变不了它们的值，要改变除非新创建一个，因此这些不可变对象不需要任何同步手段就可以直接在多线程环境下使用。</p>
+</li>
+<li><p>绝对线程安全</p>
+<p>不管运行时环境如何，调用者都不需要额外的同步措施。要做到这一点通常需要付出许多额外的代价，Java中标注自己是线程安全的类，实际上绝大多数都不是线程安全的，不过绝对线程安全的类，Java中也有，比方说<code>CopyOnWriteArrayList</code>、<code>CopyOnWriteArraySet</code>。</p>
+</li>
+<li><p>相对线程安全</p>
+<p>相对线程安全也就是我们通常意义上所说的线程安全，像<code>Vector</code>这种，<code>add</code>、<code>remove</code>方法都是原子操作，不会被打断，但也仅限于此，如果有个线程在遍历某个<code>Vector</code>、有个线程同时在<code>add</code>这个<code>Vector</code>，99%的情况下都会出现<code>ConcurrentModificationException</code>，也就是<code>fail-fast</code>机制。</p>
+</li>
+<li><p>线程非安全</p>
+<p>这个就没什么好说的了，<code>ArrayList</code>、<code>LinkedList</code>、<code>HashMap</code>等都是线程非安全的类。</p>
+</li>
+</ul>
+<h2 id="锁的分类"><a href="#锁的分类" class="headerlink" title="锁的分类"></a>锁的分类</h2><p>死锁：死锁是指两个或两个以上的进程在执行过程中，由于竞争资源或者由于彼此通信而造成的一种阻塞的现象，若无外力作用，它们都将无法推进下去。此时称系统处于死锁状态或系统产生了死锁，这些永远在互相等待的进程称为死锁进程。</p>
+<p>锁的分类：</p>
+<ul>
+<li>乐观锁&#x2F;悲观锁</li>
+<li>独享锁&#x2F;共享锁</li>
+<li>互斥锁&#x2F;读写锁</li>
+<li>可重入锁</li>
+<li>公平锁&#x2F;非公平锁</li>
+<li>分段锁</li>
+<li>偏向锁&#x2F;轻量级锁&#x2F;重量级锁</li>
+<li>自旋锁</li>
+</ul>
+<p>以上都是一些锁的名词，这些分类并不是完全指锁的状态，有的指锁的特性，有的指锁的设计，详见 <a href="concurrency/Java%E9%94%81%E7%9A%84%E5%88%86%E7%B1%BB%E5%92%8C%E4%BD%BF%E7%94%A8">Java锁的分类和使用</a>。</p>
+<h2 id="线程同步"><a href="#线程同步" class="headerlink" title="线程同步"></a>线程同步</h2><ul>
+<li>线程间通信：</li>
+</ul>
+<p>多个线程处理同一个资源，需要线程间通信解决线程对资源的占用，避免对同一资源争夺。及引入等待唤醒机制（<code>wait()</code>，<code>notify()</code>）</p>
+<p><strong>wait 方法</strong>：线程调用<code>wait()</code>方法，释放它对锁的拥有权，然后等待另外的线程来通知它（通知的方式是<code>notify()</code>或者<code>notifyAll()</code>方法），这样它才能重新获得锁的拥有权和恢复执行。要确保调用<code>wait()</code>方法的时候拥有锁，即<code>wait()</code>方法的调用必须放在<code>synchronized</code>方法或<code>synchronized</code>代码块中。</p>
+<p><strong>notify 方法</strong>：<code>notify()</code>方法会唤醒一个等待当前对象的锁的线程。唤醒在此对象监视器上等待的单个线程。</p>
+<p><strong>notifyAll 方法</strong>：<code>notifyAll()</code>方法会唤醒在此对象监视器上等待的所有线程。</p>
+<ul>
+<li>线程间共享数据：</li>
+</ul>
+<p>方式一：当每个线程执行的代码相同时，可以使用同一个<code>Runnable</code>对象</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MultiThreadShareData</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">ShareData</span> <span class="variable">task</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ShareData</span>();  <span class="comment">//一个类实现了Runnable接口</span></span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">4</span>; i ++) &#123;   <span class="comment">//四个线程来卖票</span></span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">Thread</span>(task).start();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ShareData</span> <span class="keyword">implements</span> <span class="title class_">Runnable</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> <span class="variable">data</span> <span class="operator">=</span> <span class="number">100</span>;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;  <span class="comment">//卖票，每次一个线程进来，先判断票数是否大于0</span></span><br><span class="line">         <span class="keyword">synchronized</span>(<span class="built_in">this</span>) &#123;</span><br><span class="line">             <span class="keyword">if</span>(data &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                 log.info(Thread.currentThread().getName() + <span class="string">&quot;: &quot;</span> + data);</span><br><span class="line">                 data--;</span><br><span class="line">             &#125;</span><br><span class="line">         &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>方式二：若每个线程执行任务不同，可以将两个任务方法放到一个类中，然后将 data 也放在这个类中，然后传到不同的 Runnable 中，即可完成数据的共享。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MultiThreadShareData</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">ShareData</span> <span class="variable">task</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ShareData</span>(); <span class="comment">//公共数据和任务放在task中</span></span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">2</span>; i ++) &#123; <span class="comment">//开启两个线程增加data</span></span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                    task.increment();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;).start();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">2</span>; i ++) &#123; <span class="comment">//开启两个线程减少data</span></span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                    task.decrement();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;).start();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ShareData</span> <span class="keyword">implements</span> <span class="title class_">Runnable</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> <span class="variable">data</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">increment</span><span class="params">()</span> &#123; <span class="comment">//增加data</span></span><br><span class="line">        log.info(Thread.currentThread().getName() + <span class="string">&quot;: before : &quot;</span> + data);</span><br><span class="line">        data++;</span><br><span class="line">        log.info(Thread.currentThread().getName() + <span class="string">&quot;: after : &quot;</span> + data);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">decrement</span><span class="params">()</span> &#123; <span class="comment">//减少data</span></span><br><span class="line">        log.info(Thread.currentThread().getName() + <span class="string">&quot;: before : &quot;</span> + data);</span><br><span class="line">        data--;</span><br><span class="line">        log.info(Thread.currentThread().getName() + <span class="string">&quot;: after : &quot;</span> + data);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="线程池"><a href="#线程池" class="headerlink" title="线程池"></a>线程池</h2><p>避免频繁地创建和销毁线程带来性能开销，从而达到线程对象的重复利用。同时，使用线程池还可以根据项目灵活地控制并发线程的数量。</p>
+<ul>
+<li><strong>ThreadPoolExecutor 类</strong></li>
+</ul>
+<p>ThreadPoolExecutor 类是线程池中最核心的一个类，它提供了四个构造方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThreadPoolExecutor</span> <span class="keyword">extends</span> <span class="title class_">AbstractExecutorService</span> &#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">    *corePoolSize：核心池的大小</span></span><br><span class="line"><span class="comment">    *maximumPoolSize：线程池最大线程数</span></span><br><span class="line"><span class="comment">    *keepAliveTime：表示线程没有任务执行时最多保持多久时间会终止</span></span><br><span class="line"><span class="comment">    *unit：参数keepAliveTime的时间单位，有7种取值，在TimeUnit类中有7种静态属性</span></span><br><span class="line"><span class="comment">    *    TimeUnit.DAYS;               //天</span></span><br><span class="line"><span class="comment">    *    TimeUnit.HOURS;             //小时</span></span><br><span class="line"><span class="comment">    *    TimeUnit.MINUTES;           //分钟</span></span><br><span class="line"><span class="comment">    *    TimeUnit.SECONDS;           //秒</span></span><br><span class="line"><span class="comment">    *    TimeUnit.MILLISECONDS;      //毫秒</span></span><br><span class="line"><span class="comment">    *    TimeUnit.MICROSECONDS;      //微妙</span></span><br><span class="line"><span class="comment">    *    TimeUnit.NANOSECONDS;       //纳秒</span></span><br><span class="line"><span class="comment">    *workQueue：一个阻塞队列，用来存储等待执行的任务</span></span><br><span class="line"><span class="comment">    *    ArrayBlockingQueue;</span></span><br><span class="line"><span class="comment">    *    LinkedBlockingQueue;</span></span><br><span class="line"><span class="comment">    *    SynchronousQueue;</span></span><br><span class="line"><span class="comment">    *threadFactory：线程工厂，主要用来创建线程</span></span><br><span class="line"><span class="comment">    *handler：表示当拒绝处理任务时的策略，有以下四种取值</span></span><br><span class="line"><span class="comment">    *    ThreadPoolExecutor.AbortPolicy:丢弃任务并抛出RejectedExecutionException异常。</span></span><br><span class="line"><span class="comment">    *    ThreadPoolExecutor.DiscardPolicy：也是丢弃任务，但是不抛出异常。</span></span><br><span class="line"><span class="comment">    *    ThreadPoolExecutor.DiscardOldestPolicy：丢弃队列最前面的任务，然后重新尝试执行任务（重复此过程）</span></span><br><span class="line"><span class="comment">    *    ThreadPoolExecutor.CallerRunsPolicy：由调用线程处理该任务</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    .....</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThreadPoolExecutor</span><span class="params">(<span class="type">int</span> corePoolSize,<span class="type">int</span> maximumPoolSize,<span class="type">long</span> keepAliveTime,TimeUnit unit,</span></span><br><span class="line"><span class="params">            BlockingQueue&lt;Runnable&gt; workQueue)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThreadPoolExecutor</span><span class="params">(<span class="type">int</span> corePoolSize,<span class="type">int</span> maximumPoolSize,<span class="type">long</span> keepAliveTime,TimeUnit unit,</span></span><br><span class="line"><span class="params">            BlockingQueue&lt;Runnable&gt; workQueue,ThreadFactory threadFactory)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThreadPoolExecutor</span><span class="params">(<span class="type">int</span> corePoolSize,<span class="type">int</span> maximumPoolSize,<span class="type">long</span> keepAliveTime,TimeUnit unit,</span></span><br><span class="line"><span class="params">            BlockingQueue&lt;Runnable&gt; workQueue,RejectedExecutionHandler handler)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThreadPoolExecutor</span><span class="params">(<span class="type">int</span> corePoolSize,<span class="type">int</span> maximumPoolSize,<span class="type">long</span> keepAliveTime,TimeUnit unit,</span></span><br><span class="line"><span class="params">        BlockingQueue&lt;Runnable&gt; workQueue,ThreadFactory threadFactory,RejectedExecutionHandler handler)</span>;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>ThreadPoolExecutor</code>的其他方法：</p>
+<p>1）<code>execute()</code>方法实际上是<code>Executor</code>中声明的方法，在<code>ThreadPoolExecutor</code>进行了具体的实现，这个方法是<code>ThreadPoolExecutor</code>的核心方法，通过这个方法可以向线程池提交一个任务，交由线程池去执行。</p>
+<p>2）<code>submit()</code>方法是在<code>ExecutorService</code>中声明的方法，在<code>AbstractExecutorService</code>就已经有了具体的实现，在<code>ThreadPoolExecutor</code>中并没有对其进行重写，这个方法也是用来向线程池提交任务的，但是它和<code>execute()</code>方法不同，它能够返回任务执行的结果，去看 submit() 方法的实现，会发现它实际上还是调用的<code>execute()</code>方法，只不过它利用了<code>Future</code>来获取任务执行结果。</p>
+<p>3）<code>shutdown()</code>和<code>shutdownNow()</code>是用来关闭线程池的。</p>
+<p>4）还有很多其他的方法：比如：<code>getQueue() 、getPoolSize() 、getActiveCount()、getCompletedTaskCount()</code>等获取与线程池相关属性的方法。</p>
+<ul>
+<li><strong>线程池使用实例</strong></li>
+</ul>
+<p>创建线程池时，并不提倡直接使用<code>ThreadPoolExcutor</code>类创建，而是使用<code>Executors</code>类中的几个静态方法来创建。而通过<code>Executors</code>类的源码可以看出，其实Executors 类也是调用了<code>ThreadPoolExcutor</code>类来创建线程池的，比如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span> Executors.newCachedThreadPool(<span class="type">int</span> Integer.MAX_VALUE);    <span class="comment">//创建一个缓冲池，缓冲池容量大小为</span></span><br><span class="line"><span class="number">2</span> Executors.newSingleThreadExecutor();   <span class="comment">//创建容量为1的缓冲池</span></span><br><span class="line"><span class="number">3</span> Executors.newFixedThreadPool();    <span class="comment">//创建固定容量大小的缓冲池</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> ExecutorService <span class="title function_">newFixedThreadPool</span><span class="params">(<span class="type">int</span> nThreads)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">ThreadPoolExecutor</span>(nThreads, nThreads,</span><br><span class="line">                                      <span class="number">0L</span>, TimeUnit.MILLISECONDS,</span><br><span class="line">                                      <span class="keyword">new</span> <span class="title class_">LinkedBlockingQueue</span>&lt;Runnable&gt;());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> ExecutorService <span class="title function_">newCachedThreadPool</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">ThreadPoolExecutor</span>(<span class="number">0</span>, Integer.MAX_VALUE, <span class="number">60L</span>, </span><br><span class="line">    								TimeUnit.SECONDS, <span class="keyword">new</span> <span class="title class_">SynchronousQueue</span>&lt;Runnable&gt;());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用示例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span>&#123;</span><br><span class="line">        <span class="comment">// 创建一个容量为5的线程池</span></span><br><span class="line">        <span class="type">ExecutorService</span> <span class="variable">executorService</span> <span class="operator">=</span> Executors.newFixedThreadPool(<span class="number">5</span>);</span><br><span class="line">        <span class="comment">// 向线程池提交一个任务（其实就是通过线程池来启动一个线程）</span></span><br><span class="line">        <span class="keyword">for</span>( <span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i&lt;<span class="number">15</span>; i++)&#123;</span><br><span class="line">            executorService.execute(<span class="keyword">new</span> <span class="title class_">Task</span>());</span><br><span class="line">            log.info(<span class="string">&quot;================&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        executorService.shutdown();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Task</span> <span class="keyword">extends</span> <span class="title class_">Thread</span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">        &#125;<span class="keyword">catch</span>(InterruptedException e)&#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="多线程常见问题"><a href="#多线程常见问题" class="headerlink" title="多线程常见问题"></a>多线程常见问题</h2><ul>
+<li><strong>上下文切换</strong></li>
+</ul>
+<p>多线程并不一定是要在多核处理器才支持的，就算是单核也是可以支持多线程的。 CPU 通过给每个线程分配一定的时间片，由于时间非常短通常是几十毫秒，所以 CPU 可以不停的切换线程执行任务从而达到了多线程的效果。</p>
+<p>但是由于在线程切换的时候需要保存本次执行的信息，在该线程被 CPU 剥夺时间片后又再次运行恢复上次所保存的信息的过程就称为上下文切换。上下文切换是非常耗效率的。</p>
+<p>通常有以下解决方案:</p>
+<p>采用无锁编程，比如将数据按照<code>Hash(id)</code>进行取模分段，每个线程处理各自分段的数据，从而避免使用锁。</p>
+<p>采用 CAS (<code>compare and swap</code>) 算法，如<code>Atomic</code>包就是采用<code>CAS</code>算法。</p>
+<p>合理的创建线程，避免创建了一些线程但其中大部分都是处于<code>waiting</code>状态，因为每当从<code>waiting</code>状态切换到<code>running</code>状态都是一次上下文切换。</p>
+<ul>
+<li><strong>死锁</strong></li>
+</ul>
+<p>死锁的场景一般是：线程 A 和线程 B 都在互相等待对方释放锁，或者是其中某个线程在释放锁的时候出现异常如死循环之类的。这时就会导致系统不可用。</p>
+<p>常用的解决方案如下：</p>
+<p>尽量一个线程只获取一个锁，一个线程只占用一个资源。</p>
+<p>尝试使用定时锁，至少能保证锁最终会被释放。</p>
+<p>所有线程按指定顺序获取锁。</p>
+<ul>
+<li><strong>资源限制</strong></li>
+</ul>
+<p>当在带宽有限的情况下一个线程下载某个资源需要 1M&#x2F;S，当开 10 个线程时速度并不会乘 10 倍，反而还会增加时间，毕竟上下文切换比较耗时。</p>
+<p>如果是受限于资源的话可以采用集群来处理任务，不同的机器来处理不同的数据，就类似于开始提到的无锁编程。</p>
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2018/06/18/concurrency/Java%E9%94%81%E7%9A%84%E5%88%86%E7%B1%BB%E5%92%8C%E4%BD%BF%E7%94%A8/" title="Java 锁的分类和使用"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2018/05/18/concurrency/Callable%E5%92%8CFuture%E9%85%8D%E5%90%88/" title="Callable 和 Future/FutureTask"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>

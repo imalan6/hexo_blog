@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>Netty零拷贝Zero-copy机制 | Hexo</title>
+  <meta name="description" content="Netty零拷贝Zero-copy机制传统数据拷贝方式在传统数据拷贝方式中，如果遇到这样一个场景：需要从磁盘读取一个文件通过网络发送给客户端。服务端的实现步骤一般是使用如下函数： 12read(file, tmp_buf, len);write(socket, tmp_buf, len);  从用户层面看，虽然只有两个操作步骤：从磁盘读取文件，再将文件写入到socket。但是在操作系统内部经历了一">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Netty零拷贝Zero-copy机制">
+<meta property="og:url" content="https://imalan6.github.io/hexo_blog/2020/07/26/netty/Netty%E9%9B%B6%E6%8B%B7%E8%B4%9DZero-copy%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="Netty零拷贝Zero-copy机制传统数据拷贝方式在传统数据拷贝方式中，如果遇到这样一个场景：需要从磁盘读取一个文件通过网络发送给客户端。服务端的实现步骤一般是使用如下函数： 12read(file, tmp_buf, len);write(socket, tmp_buf, len);  从用户层面看，虽然只有两个操作步骤：从磁盘读取文件，再将文件写入到socket。但是在操作系统内部经历了一">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/04/07/KEwIGpqV2ADmJr5.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/07/g8iPqMIlKNy9R1e.jpg">
+<meta property="og:image" content="https://i.loli.net/2021/04/07/nyimaFuILMChZed.png">
+<meta property="og:image" content="https://i.loli.net/2021/04/07/dHUsjYBLKC2N8WG.png">
+<meta property="article:published_time" content="2020-07-26T05:17:02.000Z">
+<meta property="article:modified_time" content="2024-02-14T11:26:32.787Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="netty">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/04/07/KEwIGpqV2ADmJr5.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2020/07/26/netty/Netty%E9%9B%B6%E6%8B%B7%E8%B4%9DZero-copy%E6%9C%BA%E5%88%B6/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/hexo_blog/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/hexo_blog/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Alan6</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">主要从事Java开发，架构设计；业余玩点Python，爬虫，网安；</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Chengdu, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/hexo_blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/hexo_blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/hexo_blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/hexo_blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/hexo_blog/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流技术，分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/">docker</a><span class="category-list-count">9</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/docker/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">网络安全</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/java/">java</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/jvm/">jvm</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/python/">python</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/redis/">redis</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a><span class="category-list-count">10</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a><span class="category-list-count">5</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/hexo_blog/tags/docker/" style="font-size: 13.67px;">docker</a> <a href="/hexo_blog/tags/elk/" style="font-size: 13.11px;">elk</a> <a href="/hexo_blog/tags/https/" style="font-size: 13px;">https</a> <a href="/hexo_blog/tags/java/" style="font-size: 14px;">java</a> <a href="/hexo_blog/tags/jvm/" style="font-size: 13.78px;">jvm</a> <a href="/hexo_blog/tags/jvm%E8%B0%83%E4%BC%98/" style="font-size: 13px;">jvm调优</a> <a href="/hexo_blog/tags/kafka/" style="font-size: 13.22px;">kafka</a> <a href="/hexo_blog/tags/mysql/" style="font-size: 13.11px;">mysql</a> <a href="/hexo_blog/tags/netty/" style="font-size: 13.44px;">netty</a> <a href="/hexo_blog/tags/nexus/" style="font-size: 13px;">nexus</a> <a href="/hexo_blog/tags/nginx/" style="font-size: 13.11px;">nginx</a> <a href="/hexo_blog/tags/python/" style="font-size: 13.22px;">python</a> <a href="/hexo_blog/tags/rabbitmq/" style="font-size: 13.33px;">rabbitmq</a> <a href="/hexo_blog/tags/redis/" style="font-size: 13.67px;">redis</a> <a href="/hexo_blog/tags/springboot/" style="font-size: 13.11px;">springboot</a> <a href="/hexo_blog/tags/srpingcloud/" style="font-size: 13.56px;">srpingcloud</a> <a href="/hexo_blog/tags/ssl%E8%AF%81%E4%B9%A6/" style="font-size: 13px;">ssl证书</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8Fid/" style="font-size: 13px;">分布式id</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" style="font-size: 13px;">分布式缓存</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 13px;">分布式锁</a> <a href="/hexo_blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81/" style="font-size: 13px;">分布式限流</a> <a href="/hexo_blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13.11px;">垃圾回收</a> <a href="/hexo_blog/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" style="font-size: 13.89px;">多线程</a> <a href="/hexo_blog/tags/%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" style="font-size: 13.11px;">故障排查</a> <a href="/hexo_blog/tags/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/" style="font-size: 13px;">服务注册</a> <a href="/hexo_blog/tags/%E7%86%94%E6%96%AD/" style="font-size: 13px;">熔断</a> <a href="/hexo_blog/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13.22px;">爬虫</a> <a href="/hexo_blog/tags/%E7%9B%91%E6%8E%A7/" style="font-size: 13.11px;">监控</a> <a href="/hexo_blog/tags/%E7%BC%93%E5%AD%98/" style="font-size: 13.44px;">缓存</a> <a href="/hexo_blog/tags/%E7%BD%91%E5%85%B3/" style="font-size: 13px;">网关</a> <a href="/hexo_blog/tags/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" style="font-size: 13px;">网络安全</a> <a href="/hexo_blog/tags/%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA/" style="font-size: 13px;">链路追踪</a>
+    </div>
+  </div>
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/06/python/%E7%94%A8tushare%E5%92%8Cakshare%E8%8E%B7%E5%8F%96%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E5%92%8C%E6%AF%8F%E6%97%A5%E7%9A%84%E6%88%90%E4%BA%A4%E6%98%8E%E7%BB%86/" class="title">用tushare和akshare获取股票历史行情和每日的成交明细</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-06T15:16:21.000Z" itemprop="datePublished">2024-01-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/" class="title">用python爬股票列表数据</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2024-01-02T05:12:33.000Z" itemprop="datePublished">2024-01-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2023/03/02/python/%E7%94%A8python%E7%88%ACchina_radio%E9%9F%B3%E9%A2%91/" class="title">用python爬china_radio音频</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/python/">python</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-03-02T05:12:33.000Z" itemprop="datePublished">2023-03-02</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/18/kafka/kafka%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" class="title">kafka集群部署（无zookeep方式）</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/docker/">docker</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-18T14:26:17.000Z" itemprop="datePublished">2022-11-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+			  <p class="item-title">
+                <a href="/hexo_blog/2022/11/10/kafka/kafka%E5%8F%91%E9%80%81%E6%95%B0%E6%8D%AE%E5%8F%AF%E9%9D%A0%E6%80%A7/" class="title">kafka数据可靠性</a>
+              </p>
+              <p class="item-category">
+                <a class="category-link" href="/hexo_blog/categories/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-11-10T15:12:33.000Z" itemprop="datePublished">2022-11-10</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-netty/Netty零拷贝Zero-copy机制" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Netty零拷贝Zero-copy机制
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/hexo_blog/2020/07/26/netty/Netty%E9%9B%B6%E6%8B%B7%E8%B4%9DZero-copy%E6%9C%BA%E5%88%B6/" class="article-date">
+	  <time datetime="2020-07-26T05:17:02.000Z" itemprop="datePublished">2020-07-26</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/hexo_blog/categories/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6/">开源组件</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/hexo_blog/tags/netty/" rel="tag">netty</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/hexo_blog/2020/07/26/netty/Netty%E9%9B%B6%E6%8B%B7%E8%B4%9DZero-copy%E6%9C%BA%E5%88%B6/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="Netty零拷贝Zero-copy机制"><a href="#Netty零拷贝Zero-copy机制" class="headerlink" title="Netty零拷贝Zero-copy机制"></a>Netty零拷贝Zero-copy机制</h1><h2 id="传统数据拷贝方式"><a href="#传统数据拷贝方式" class="headerlink" title="传统数据拷贝方式"></a>传统数据拷贝方式</h2><p>在传统数据拷贝方式中，如果遇到这样一个场景：需要从磁盘读取一个文件通过网络发送给客户端。服务端的实现步骤一般是使用如下函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">read(file, tmp_buf, len);</span><br><span class="line">write(socket, tmp_buf, len);</span><br></pre></td></tr></table></figure>
+
+<p>从用户层面看，虽然只有两个操作步骤：从磁盘读取文件，再将文件写入到<code>socket</code>。但是在操作系统内部经历了一个较为复杂的过程，这个过程如下图所示：</p>
+<p><img src="https://i.loli.net/2021/04/07/KEwIGpqV2ADmJr5.png" alt="0.png"></p>
+<p>从图中可以看出经历了4次数据拷贝过程：</p>
+<p>1）首先，调用<code>read</code>方法，文件从<code>user</code>模式拷贝到了<code>kernel</code>模式，即用户模式—&gt;内核模式的上下文切换，在内部发送<code>sys_read()</code>从文件中读取数据，存储到一个内核地址空间缓存区中。这一步，<strong>数据从磁盘复制到内核缓冲区</strong>。</p>
+<p>2）之后CPU控制将<code>kernel</code>模式数据拷贝到<code>user</code>模式下，即内核模式—&gt;用户模式的上下文切换，<code>read()</code>调用返回，数据被存储到用户地址空间的缓存区中。这一步，<strong>数据从内核缓冲区复制到用户空间缓冲区</strong>。</p>
+<p>3）调用write时候，先将user模式下的内容拷贝到<code>kernel</code>模式下<code>socket</code>的<code>buffer</code>中，即用户模式—&gt;内核模式，数据再次被放置在内核缓存区中，<code>send()</code>套接字调用。这一步，<strong>数据从用户缓冲区复制到内核的socket缓冲区</strong>。</p>
+<p>4）最后将<code>kernel</code>模式下的<code>socket buffer</code>的数据拷贝到网卡设备中，<code>send()</code>套接字调用返回。这一步，<strong>数据从socket缓冲区复制到协议引擎</strong>（这里是网卡驱动）。</p>
+<p>很明显，第2、3次数据拷贝是多余的，白白让数据在用户空间转了一圈，即浪费了时间，又降低了性能。</p>
+<p><img src="https://i.loli.net/2021/04/07/g8iPqMIlKNy9R1e.jpg" alt="3.png"></p>
+<h2 id="零拷贝机制"><a href="#零拷贝机制" class="headerlink" title="零拷贝机制"></a>零拷贝机制</h2><p>零拷贝，即所谓的<code>Zero-copy</code>，是指在操作数据时，不需要将数据从一个内存区域拷贝到另一个内存区域。因为少了一次或多次数据的拷贝，因此程序性能得到提升。如果操作的数据量大，这种性能提升效果是非常明显的。</p>
+<p>在操作系统层面上的<code>Zero-copy</code>通常指避免在用户态(User-space)与内核态(Kernel-space)之间来回拷贝数据。例如，Linux提供的<code>mmap</code>系统调用，它可以将一段用户空间内存映射到内核空间，当映射成功后，用户对这段内存区域的修改可以直接映射到内核空间。同样地, 内核空间对这段区域的修改也可以直接映射到用户空间。这样，就不需要在用户态与内核态之间拷贝数据，提高了数据传输的效率。</p>
+<p>从上面传统数据拷贝方式看，第2、3次数据拷贝根本就是多余的。应用程序只是起到缓存数据传回到套接字的作用而已，没有其他意义。</p>
+<p>应用程序使用<code>zero-copy</code>请求<code>kernel</code>直接把<code>disk</code>的数据传输到<code>socket</code>中，而不需要通过应用程序中转。<code>zero-copy</code>大大提高了应用程序的性能，并且减少了<code>kernel</code>和<code>user</code>模式的上下文切换。</p>
+<p>数据可以直接从<code>read buffer</code>读缓存区传输到套接字缓冲区，也就省去了将操作系统的<code>read buffer</code>拷贝到程序的<code>buffer</code>，以及从程序<code>buffer</code>拷贝到<code>socket buffer</code>的步骤，直接将<code>read buffer</code>拷贝到<code>socket buffer</code>。<code>JDK NIO</code>中的<code>transferTo()</code> 方法就能实现这个操作，它依赖于操作系统底层的<code>sendFile()</code>实现。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">transferTo</span><span class="params">(<span class="type">long</span> position, <span class="type">long</span> count, WritableByteChannel target)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>而底层是调用的<code>sendFile()</code>方法：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="type">ssize_t</span> <span class="title function_">sendfile</span><span class="params">(<span class="type">int</span> out_fd, <span class="type">int</span> in_fd, <span class="type">off_t</span> *offset, <span class="type">size_t</span> count)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://i.loli.net/2021/04/07/nyimaFuILMChZed.png" alt="2.png"></p>
+<p>使用了<code>zero-copy</code>技术后，整个过程如下：</p>
+<p>1）<code>transferTo()</code>方法使得文件的内容直接拷贝到了一个<code>read buffer</code>（kernel buffer）中</p>
+<p>2）然后数据从<code>kernel buffer</code>拷贝到<code>socket buffer</code>中</p>
+<p>3）最后将<code>socket buffer</code>中的数据拷贝到协议引擎（网卡设备）中传输</p>
+<p>这里没有了从内核态到用户态的过程，上下文切换从4次减少到2次，同时把数据拷贝的次数从4次降低到3次。</p>
+<p>linux 2.1内核开始引入了<code>sendfile</code>函数，用于将文件通过<code>socket</code>传输。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sendfile(socket, file, len);</span><br></pre></td></tr></table></figure>
+
+<p>该函数通过一次调用完成了文件的传输。该函数通过一次系统调用完成了文件的传输，减少了原来<code>read/write</code>方式的模式切换。此外更是减少了数据的拷贝。</p>
+<p>通过<code>sendfile</code>传送文件只需要一次系统调用，当调用<code>sendfile</code>时：</p>
+<p>1）首先通过<code>DMA</code>将数据从磁盘读取到<code>kernel buffer</code>中</p>
+<p>2）然后将<code>kernel buffer</code>数据拷贝到<code>socket buffer</code>中</p>
+<p>3）最后将<code>socket buffer</code>中的数据拷贝到网卡设备中（protocol buffer）发送；</p>
+<p><code>sendfile</code>与<code>read/write</code>模式相比，少了一次<code>copy</code>。但是从上述过程中发现从<code>kernel buffer</code>中将数据<code>copy</code>到<code>socket buffer</code>也是没有必要的。</p>
+<p>因此，Linux 2.4内核对<code>sendfile</code>做了改进，如图所示：</p>
+<p><img src="https://i.loli.net/2021/04/07/dHUsjYBLKC2N8WG.png" alt="4.png"></p>
+<p>改进后的处理过程如下：</p>
+<p>1）将文件拷贝到<code>kernel buffer</code>中；(<code>DMA</code>引擎将文件内容拷贝到内核缓存区)</p>
+<p>2）向<code>socket buffer</code>中追加当前要发生的数据在<code>kernel buffer</code>中的位置和偏移量</p>
+<p>3）根据<code>socket buffer</code>中的位置和偏移量直接将<code>kernel buffer</code>的数据拷贝到网卡设备（protocol engine）中</p>
+<p>linux 2.1内核中的 “数据被拷贝到<code>socket buffer</code>”的动作，在Linux 2.4内核做了优化，取而代之的是只包含关于数据的位置和长度的信息的描述符被追加到了<code>socket buffer</code>缓冲区中。<code>DMA</code>引擎直接把数据从内核缓冲区传输到网卡设备（protocol engine），从而减少了最后一次拷贝。经过上述过程，数据只经过了2次copy就从磁盘传送出去了。这就是<code>Zero-Copy</code>(这里的零拷贝是针对<code>kernel</code>来讲的，数据在<code>kernel</code>模式下是<code>Zero-Copy</code>)。Java中的<code>TransferTo()</code>方法实现了<code>Zero-Copy</code>。</p>
+<p><code>Zero-Copy</code>技术的使用场景有很多，比如<code>Kafka</code>，<code>Netty</code>等，可以大大提升程序性能。</p>
+<h2 id="Netty的零拷贝机制"><a href="#Netty的零拷贝机制" class="headerlink" title="Netty的零拷贝机制"></a>Netty的零拷贝机制</h2><p>而需要注意的是，Netty中的<code>Zero-copy</code>与上面提到的操作系统层面上的<code>Zero-copy</code>不完全一样，Netty的<code>Zero-coyp</code>应该是多维度的。包含三个层次：</p>
+<h4 id="避免从内核空间—-用户空间"><a href="#避免从内核空间—-用户空间" class="headerlink" title="避免从内核空间—&gt;用户空间"></a>避免从内核空间—&gt;用户空间</h4><p>这个和上述的操作系统系统层面的零拷贝机制一样，<code>Netty</code>在这一层对零拷贝实现就是<code>FileRegion</code>类的<code>transferTo()</code>方法，可以不提供<code>buffer</code>完成整个文件的发送，不再需要开辟<code>buffer</code>在用户-内核空间循环读写。</p>
+<h4 id="避免从JVM-Heap—-C-Heap"><a href="#避免从JVM-Heap—-C-Heap" class="headerlink" title="避免从JVM Heap—&gt;C Heap"></a>避免从JVM Heap—&gt;C Heap</h4><p>在JVM层面，每当程序需要执行一个I&#x2F;O操作时，都需要将数据先从JVM管理的堆内存复制到使用C malloc()或类似函数分配的Heap内存中，这样才能够触发系统调用完成操作，这部分内存对于Java应用来说是堆外内存，但是从操作系统来看其实都属于进程的堆区，操作系统并不知道JVM的存在，都是普通的用户程序。这样的话，JVM在I&#x2F;O时永远比使用native语言编写的程序多一次数据复制，这也是所有基于虚拟机的编程语言都无法避免的问题。</p>
+<p>而Netty是在适当的位置直接使用堆外内存从而避免了数据从JVM Heap到C Heap的拷贝。</p>
+<h4 id="避免在用户空间的多次拷贝"><a href="#避免在用户空间的多次拷贝" class="headerlink" title="避免在用户空间的多次拷贝"></a>避免在用户空间的多次拷贝</h4><p>在实现应用层数据传输功能时，可能会遇到这样一个场景。假如有一份协议数据, 它由头部和消息体组成, 而头部和消息体是分别存放在两个ByteBuf中，分别是:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ByteBuf header</span><br><span class="line">ByteBuf body</span><br></pre></td></tr></table></figure>
+
+<p>在代码处理时，通常会将header和body合并为一个ByteBuf来操作，这样处理起来更方便。比如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ByteBuf</span> <span class="variable">allBuf</span> <span class="operator">=</span> Unpooled.buffer(header.readableBytes() + body.readableBytes());</span><br><span class="line">allBuf.writeBytes(header);</span><br><span class="line">allBuf.writeBytes(body);</span><br></pre></td></tr></table></figure>
+
+<p>可以看出，将header和body拷贝到新的allBuf中，这无形中增加了两次额外的数据拷贝操作。</p>
+<p>而<code>Netty</code>提供了<code>CompositeByteBuf</code>类，它可以将物理上分散的多个<code>ByteBuf</code>从逻辑上当成一个完整的<code>ByteBuf</code>来操作，这样就免去了重新分配空间再复制数据的开销。<code>Netty</code>的<code>Zero-copy</code>体现在如下几个方面:</p>
+<ul>
+<li>Netty提供了 <code>CompositeByteBuf</code> 类，可以将多个<code>ByteBuf</code>合并为一个逻辑上的<code>ByteBuf</code>，避免了各个<code>ByteBuf</code>之间的数据拷贝。</li>
+<li>通过<code>wrap</code>操作，可以将byte[]数组、<code>ByteBuf</code>、<code>ByteBuffer</code>等包装成一个<code>Netty ByteBuf</code>对象，进而避免了拷贝操作。</li>
+<li><code>ByteBuf</code>支持<code>slice</code>操作，可以将<code>ByteBuf</code>分解为多个共享同一个存储区域的<code>ByteBuf</code>，避免了内存的拷贝。</li>
+<li>通过<code>FileRegion</code>包装的<code>FileChannel.tranferTo</code>实现文件传输，可以直接将文件缓冲区的数据发送到目标<code>Channel</code>，避免了传统通过循环<code>write</code>方式导致的内存拷贝问题。</li>
+</ul>
+
+      
+    </div>
+    <div class="article-footer">
+      </br>
+</br>
+</br>
+    </div>
+  </article>
+  
+    
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/hexo_blog/2020/09/12/springboot/SpringBoot%E9%85%8D%E7%BD%AESlf4j%E5%92%8CLogback/" title="pringBoot配置Slf4j和Logback"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/hexo_blog/2020/07/11/netty/Netty%E7%9A%84%E9%AB%98%E6%80%A7%E8%83%BDNIO%E6%A8%A1%E5%9E%8B/" title="Netty的高性能NIO模型"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/hexo_blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/hexo_blog/js/plugin.min.js"></script>
+
+
+<script src="/hexo_blog/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/hexo_blog/',
+        CONTENT_URL: '/hexo_blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/hexo_blog/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+</body>
+</html>
