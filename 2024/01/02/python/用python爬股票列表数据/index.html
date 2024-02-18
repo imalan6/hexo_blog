@@ -25,15 +25,15 @@
 <meta property="og:site_name" content="Hexo">
 <meta property="og:description" content="最近帮一个做金融的朋友爬股票数据。网上找遍了居然没有免费获取A股列表的接口，没办法只能去股票网站爬数据。 一、访问目标网站同花顺行情中心：https:&#x2F;&#x2F;q.10jqka.com.cn&#x2F;，打开开发者工具，查看代码，找到数据所在位置。有股票名称，代码，相关属性  但是在爬取过程中发现一个问题：程序自动打开的浏览器，程序模拟点击下一页，网页没有任何反应，一直卡住。但是手动打开网站，下一页是可以点击的">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/image-20240215185556750.png">
-<meta property="og:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/format,png.png">
+<meta property="og:image" content="https://s2.loli.net/2024/02/18/n3kFgxjZutywJW1.png">
+<meta property="og:image" content="https://s2.loli.net/2024/02/18/OEx1qMXn5RoBurC.png">
 <meta property="article:published_time" content="2024-01-02T05:12:33.000Z">
-<meta property="article:modified_time" content="2024-02-15T11:54:51.642Z">
+<meta property="article:modified_time" content="2024-02-18T13:34:45.090Z">
 <meta property="article:author" content="John Doe">
 <meta property="article:tag" content="python">
 <meta property="article:tag" content="爬虫">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://imalan6.github.io/hexo_blog/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/image-20240215185556750.png">
+<meta name="twitter:image" content="https://s2.loli.net/2024/02/18/n3kFgxjZutywJW1.png">
   <!-- Canonical links -->
   <link rel="canonical" href="https://imalan6.github.io/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/index.html">
   
@@ -334,7 +334,7 @@
       
         <p> 最近帮一个做金融的朋友爬股票数据。网上找遍了居然没有免费获取A股列表的接口，没办法只能去股票网站爬数据。</p>
 <h3 id="一、访问目标网站"><a href="#一、访问目标网站" class="headerlink" title="一、访问目标网站"></a>一、访问目标网站</h3><p>同花顺行情中心：<a target="_blank" rel="noopener" href="https://q.10jqka.com.cn/%EF%BC%8C%E6%89%93%E5%BC%80%E5%BC%80%E5%8F%91%E8%80%85%E5%B7%A5%E5%85%B7%EF%BC%8C%E6%9F%A5%E7%9C%8B%E4%BB%A3%E7%A0%81%EF%BC%8C%E6%89%BE%E5%88%B0%E6%95%B0%E6%8D%AE%E6%89%80%E5%9C%A8%E4%BD%8D%E7%BD%AE%E3%80%82%E6%9C%89%E8%82%A1%E7%A5%A8%E5%90%8D%E7%A7%B0%EF%BC%8C%E4%BB%A3%E7%A0%81%EF%BC%8C%E7%9B%B8%E5%85%B3%E5%B1%9E%E6%80%A7">https://q.10jqka.com.cn/，打开开发者工具，查看代码，找到数据所在位置。有股票名称，代码，相关属性</a></p>
-<p><img src="/hexo_blog/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/image-20240215185556750.png" alt="image-20240215185556750"></p>
+<p><img src="https://s2.loli.net/2024/02/18/n3kFgxjZutywJW1.png" alt="image-20240215185556750.png"></p>
 <p>但是在爬取过程中发现一个问题：<strong>程序自动打开的浏览器，程序模拟点击下一页，网页没有任何反应，一直卡住。但是手动打开网站，下一页是可以点击的</strong>。估计是网站做了反爬虫处理。</p>
 <p>既然手动打开浏览器访问一切正常，那就换个思路：<strong>先手动打开浏览器访问，再用selenium连接已经打开的浏览器操作就可以了</strong>。</p>
 <h3 id="二、用selenium连接已经打开的浏览器"><a href="#二、用selenium连接已经打开的浏览器" class="headerlink" title="二、用selenium连接已经打开的浏览器"></a>二、用selenium连接已经打开的浏览器</h3><p>通过 selenium 连接浏览器，需要用到两个参数 –remote-debugging-port 和 –user-data-dir </p>
@@ -349,7 +349,7 @@
 <p>用命令行打开浏览器不常用，可以在 chrome 的快捷方式上添加参数。右击快捷方式，选择属性，在目标栏后面加上：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">--remote-debugging-port=9222 --user-data-dir=<span class="string">&quot;C:\selenium\ChromeProfile&quot;</span></span><br></pre></td></tr></table></figure>
 
-<p><img src="/hexo_blog/hexo_blog/2024/01/02/python/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/%E7%94%A8python%E7%88%AC%E8%82%A1%E7%A5%A8%E5%88%97%E8%A1%A8%E6%95%B0%E6%8D%AE/format,png.png" alt="img"></p>
+<p><img src="https://s2.loli.net/2024/02/18/OEx1qMXn5RoBurC.png" alt="format,png.png"></p>
 <p>现在，通过快捷方式直接打开浏览器也可以远程调试了。</p>
 <p>3、selenium操作浏览器时，记得加上参数 options.add_experimental_option(“debuggerAddress”, “127.0.0.1:9222”)，关键代码如下：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">selenium_url_chrome</span>(<span class="params">url, <span class="built_in">id</span>, stock_values</span>):</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 谷歌浏览器位置</span></span><br><span class="line">    chrome_location = <span class="string">r&#x27;C:\Users\admin\Downloads\chrome-win64\chrome.exe&#x27;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 谷歌浏览器驱动地址</span></span><br><span class="line">    service = Service(<span class="string">&#x27;D:\chromedriver.exe&#x27;</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment"># 创建option对象</span></span><br><span class="line">    options = Options()</span><br><span class="line">    <span class="comment"># 指定连接端口</span></span><br><span class="line">    options.add_experimental_option(<span class="string">&quot;debuggerAddress&quot;</span>, <span class="string">&quot;127.0.0.1:9222&quot;</span>)</span><br><span class="line">    options.binary_location = chrome_location  </span><br><span class="line">    </span><br><span class="line">    driver = webdriver.Chrome(options=options, service=service)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 访问指定的url地址</span></span><br><span class="line">    driver.get(url)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 等待指定元素加载成功</span></span><br><span class="line">    WebDriverWait(driver, <span class="number">10</span>).until(EC.visibility_of(driver.find_element(by=By.ID, value=<span class="string">&#x27;maincont&#x27;</span>)))</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> get_data(driver, driver.page_source, <span class="built_in">id</span>, stock_values)</span><br></pre></td></tr></table></figure>
